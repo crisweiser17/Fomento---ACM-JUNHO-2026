@@ -16,6 +16,27 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 // Define os links do menu, usando uma estrutura para dropdown
 // Adicionados ícones (Bootstrap Icons) como parte do label para simplicidade
 $menuItems = [
+    // Link simples para a Home (hub do sistema)
+    'home.php' => '<i class="bi bi-house-door me-1"></i> Início',
+    // Estrutura para o dropdown de Leads (Esteira de Venda e Novo Lead)
+    'leads_dropdown' => [
+        'label' => 'Leads',
+        'icon' => 'bi-funnel-fill',
+        'pages' => [
+            'listar_leads.php',
+            'kanban_leads.php',
+            'form_lead.php',
+            'salvar_lead.php',
+            'excluir_lead.php',
+            'arquivar_lead.php',
+            'converter_lead.php',
+            'atualizar_estagio_lead.php'
+        ],
+        'items' => [
+            'kanban_leads.php' => '<i class="bi bi-kanban"></i> Esteira de Venda',
+            'form_lead.php'    => '<i class="bi bi-plus-circle"></i> Novo Lead'
+        ]
+    ],
     // Estrutura para o dropdown de Operações (inclui Nova Simulação, Operações e Recebíveis)
     'operacoes_dropdown' => [
         'label' => 'Operações',
@@ -34,19 +55,11 @@ $menuItems = [
             'listar_recebiveis.php' => '<i class="bi bi-list-check"></i> Gerenciar Recebíveis'
         ]
     ],
-    // Estrutura para o dropdown Comercial (Leads e Clientes)
-    'comercial_dropdown' => [
-        'label' => 'Comercial',
-        'icon' => 'bi-funnel-fill',
+    // Estrutura para o dropdown de Clientes (Novo Cliente e Listar Clientes)
+    'clientes_dropdown' => [
+        'label' => 'Clientes',
+        'icon' => 'bi-people-fill',
         'pages' => [
-            'listar_leads.php',
-            'kanban_leads.php',
-            'form_lead.php',
-            'salvar_lead.php',
-            'excluir_lead.php',
-            'arquivar_lead.php',
-            'converter_lead.php',
-            'atualizar_estagio_lead.php',
             'listar_clientes.php',
             'form_cliente.php',
             'visualizar_cliente.php',
@@ -54,11 +67,8 @@ $menuItems = [
             'excluir_cliente.php'
         ],
         'items' => [
-            'kanban_leads.php'    => '<i class="bi bi-kanban"></i> Esteira de Venda',
-            'form_lead.php'       => '<i class="bi bi-plus-circle"></i> Novo Lead',
-            '_divider1'           => '---',
             'form_cliente.php'    => '<i class="bi bi-person-plus"></i> Novo Cliente',
-            'listar_clientes.php' => '<i class="bi bi-people"></i> Clientes'
+            'listar_clientes.php' => '<i class="bi bi-people"></i> Listar Clientes'
         ]
     ],
     // Estrutura para o dropdown de Relatórios
@@ -94,7 +104,7 @@ $menuItems = [
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
   <div class="container-fluid px-3 px-md-4 app-shell-width">
-    <a class="navbar-brand" href="kanban_leads.php">
+    <a class="navbar-brand" href="home.php">
         <i class="bi bi-cash-coin me-2"></i><?php echo htmlspecialchars($menuAppName); ?>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -179,6 +189,9 @@ $menuItems = [
 <footer class="app-footer">
   <div class="container-fluid px-3 px-md-4 app-shell-width d-flex justify-content-between align-items-center">
     <span><i class="bi bi-cash-coin me-1"></i><?php echo htmlspecialchars($menuAppName); ?></span>
-    <span>Atualizado em <?php echo htmlspecialchars($menuAppVersion); ?></span>
+    <span class="d-flex align-items-center gap-3">
+      <a href="manual.php" class="app-footer-link"><i class="bi bi-book me-1"></i>Manual do Sistema</a>
+      <span>Atualizado em <?php echo htmlspecialchars($menuAppVersion); ?></span>
+    </span>
   </div>
 </footer>

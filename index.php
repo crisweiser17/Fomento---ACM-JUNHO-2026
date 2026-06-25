@@ -1,4 +1,4 @@
 <?php
 require_once 'auth_check.php';
-header('Location: kanban_leads.php');
+header('Location: home.php');
 exit;

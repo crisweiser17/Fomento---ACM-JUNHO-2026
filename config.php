@@ -12,6 +12,7 @@ function readConfig($filePath) {
         $defaultConfig = [
             "app_name" => "FACTOR",
             "app_version" => "5.3 — 25 de junho de 2026",
+            "timezone" => DEFAULT_TIMEZONE,
             "default_taxa_mensal" => 5.00,
             "taxa_juros_atraso" => 1.00,
             "taxa_multa_atraso" => 2.00,
@@ -34,6 +35,7 @@ function readConfig($filePath) {
     // Garantir que os campos de email existam mesmo em configs antigas
     if (!isset($config['app_name'])) $config['app_name'] = 'FACTOR';
     if (!isset($config['app_version'])) $config['app_version'] = '5.3 — 25 de junho de 2026';
+    if (!isset($config['timezone'])) $config['timezone'] = DEFAULT_TIMEZONE;
     if (!isset($config['resend_api_key'])) $config['resend_api_key'] = '';
     if (!isset($config['taxa_juros_atraso'])) $config['taxa_juros_atraso'] = 1.00;
     if (!isset($config['taxa_multa_atraso'])) $config['taxa_multa_atraso'] = 2.00;
@@ -69,6 +71,7 @@ function readConfig($filePath) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_config') {
     $newAppName = $_POST['app_name'] ?? 'FACTOR';
     $newAppVersion = '5.3 — 25 de junho de 2026';
+    $newTimezone = resolveTimezone($_POST['timezone'] ?? null); // valida contra a lista do Brasil
     $newDefaultTaxaMensal = isset($_POST['default_taxa_mensal']) ? (float)$_POST['default_taxa_mensal'] : null;
     $newTaxaJurosAtraso = isset($_POST['taxa_juros_atraso']) ? (float)$_POST['taxa_juros_atraso'] : null;
     $newTaxaMultaAtraso = isset($_POST['taxa_multa_atraso']) ? (float)$_POST['taxa_multa_atraso'] : null;
@@ -108,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $config = [
             "app_name" => $newAppName,
             "app_version" => $newAppVersion,
+            "timezone" => $newTimezone,
             "default_taxa_mensal" => $newDefaultTaxaMensal,
             "taxa_juros_atraso" => $newTaxaJurosAtraso,
             "taxa_multa_atraso" => $newTaxaMultaAtraso,
@@ -356,6 +360,21 @@ require_once 'head.php';
                         <div class="col-md-6">
                             <label for="app_version" class="form-label">Versão</label>
                             <input type="text" class="form-control" id="app_version" name="app_version" value="<?php echo htmlspecialchars($currentConfig['app_version'] ?? '5.3 — 25 de junho de 2026'); ?>" readonly>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="timezone" class="form-label">Fuso Horário do Sistema</label>
+                            <?php $selectedTz = resolveTimezone($currentConfig['timezone'] ?? null); ?>
+                            <select class="form-select" id="timezone" name="timezone">
+                                <?php foreach (brazilTimezones() as $tzId => $tzLabel): ?>
+                                <option value="<?php echo htmlspecialchars($tzId); ?>" <?php echo $selectedTz === $tzId ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($tzLabel); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="help-line">Aplica-se a datas e horários em todo o sistema. Padrão: Brasília (America/Sao_Paulo).</div>
                         </div>
                     </div>
 
