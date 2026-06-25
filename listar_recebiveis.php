@@ -326,55 +326,46 @@ function formatHtmlStatus($recebivel, $data_recebimento = null) {
     $status = $recebivel['status_real'] ?? $recebivel['status'] ?? 'Em Aberto';
     $percentual = $recebivel['percentual_compensado'] ?? 0;
     
-    $badgeClass = 'bg-secondary rounded-pill'; $tooltip = '';
+    // Dieta de cor: pills suaves. Cor só onde comunica desfecho — verde = recebido,
+    // vermelho = problema. Os demais estados ficam neutros (a urgência de prazo já
+    // aparece na coluna Vencimento, evitando excesso de cor no Status).
+    $pillClass = 's-neutro'; $tooltip = 'Aguardando ação ou recebimento';
     switch ($status) {
-        case 'Em Aberto': $badgeClass = 'bg-info text-dark rounded-pill'; $tooltip = 'Aguardando ação ou recebimento'; break;
-        case 'Recebido': 
-            $badgeClass = 'bg-success rounded-pill'; 
+        case 'Em Aberto': $pillClass = 's-neutro'; $tooltip = 'Aguardando ação ou recebimento'; break;
+        case 'Recebido':
+            $pillClass = 's-recebido';
             $tooltip = 'Recebimento confirmado';
             if (!empty($data_recebimento)) {
-                $dataFormatada = formatHtmlDate($data_recebimento);
-                $tooltip .= ' em ' . $dataFormatada;
+                $tooltip .= ' em ' . formatHtmlDate($data_recebimento);
             }
             break;
-        case 'Problema': $badgeClass = 'bg-danger rounded-pill'; $tooltip = 'Problema no recebimento'; break;
+        case 'Problema': $pillClass = 's-problema'; $tooltip = 'Problema no recebimento'; break;
         case 'Compensado':
-        case 'Totalmente Compensado': $badgeClass = 'bg-primary rounded-pill'; $tooltip = 'Valor totalmente compensado em encontro de contas'; break;
-        case 'Parcialmente Compensado': $badgeClass = 'bg-warning text-dark rounded-pill'; $tooltip = "Valor parcialmente compensado ({$percentual}%)"; break;
+        case 'Totalmente Compensado': $pillClass = 's-neutro'; $tooltip = 'Valor totalmente compensado em encontro de contas'; break;
+        case 'Parcialmente Compensado': $pillClass = 's-neutro'; $tooltip = "Valor parcialmente compensado ({$percentual}%)"; break;
     }
-    
+
     $statusText = $status;
     if ($status === 'Parcialmente Compensado') {
         $statusText .= " ({$percentual}%)";
     }
-    
+
     // Se for "Recebido" e tiver data, usar tooltip customizado
     if ($status === 'Recebido' && !empty($data_recebimento)) {
         return '<div class="tooltip-wrapper">
-                    <span class="badge ' . $badgeClass . '">' . htmlspecialchars($statusText) . '</span>
+                    <span class="status-pill ' . $pillClass . '">' . htmlspecialchars($statusText) . '</span>
                     <span class="tooltip-text">' . htmlspecialchars($tooltip) . '</span>
                 </div>';
     }
-    
+
     // Para outros casos, usar tooltip padrão
-    return '<span class="badge ' . $badgeClass . '" title="' . htmlspecialchars($tooltip) . '">' . htmlspecialchars($statusText) . '</span>';
+    return '<span class="status-pill ' . $pillClass . '" title="' . htmlspecialchars($tooltip) . '">' . htmlspecialchars($statusText) . '</span>';
 }
 
 function getTableRowClass($status, $data_vencimento = null) {
-    if ($data_vencimento && !in_array($status, ['Recebido', 'Compensado', 'Totalmente Compensado'])) {
-        $hoje = date('Y-m-d');
-        if ($data_vencimento < $hoje) {
-            return 'table-danger fw-bold';
-        }
-    }
-    switch ($status) {
-        case 'Recebido': return 'table-light text-muted opacity-75';
-        case 'Problema': return 'table-danger fw-bold';
-        case 'Compensado': return 'table-warning text-muted opacity-75';
-        case 'Totalmente Compensado': return 'table-warning text-muted opacity-75';
-        case 'Parcialmente Compensado': return 'table-primary';
-        case 'Em Aberto': default: return '';
-    }
+    // Linhas não têm mais cor de fundo por status (usam zebra). Urgência e status
+    // são comunicados por pills nas colunas Vencimento e Status.
+    return '';
 }
 
 // Helper function para links de ordenação
@@ -403,91 +394,15 @@ $current_filters_for_links = [
 $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort, 'dir' => $dir];
 
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista de Recebíveis</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<?php
+$pageTitle = 'Recebíveis';
+require_once 'head.php';
+?>
     <style>
-        :root {
-            --profit: #198754; --profit-soft: #d1f0dc;
-            --warn: #b76b00; --warn-soft: #fff3d6;
-            --danger: #b02a37; --danger-soft: #fde2e4;
-            --info: #0a4ea8; --info-soft: #eef4ff;
-            --neutral: #6c757d;
-            --surface: #ffffff; --surface-2: #f6f8fb;
-            --border: #e3e8ef;
-        }
-        body { background: #eef2f7; font-size: 0.95rem; }
+        /* Estilos específicos da página (tokens e componentes base vêm de theme.css) */
+        body { font-size: 0.95rem; }
 
-        .page-toolbar {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px 18px; margin-bottom: 18px;
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 12px;
-        }
-        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
-        .id-pill {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 4px 10px; border-radius: 999px;
-            background: var(--info-soft); color: var(--info);
-            font-size: 0.78rem; font-weight: 700; margin-left: 6px;
-        }
-
-        .kpi-strip {
-            display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 12px; margin-bottom: 18px;
-        }
-        @media (max-width: 992px) { .kpi-strip { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 576px) { .kpi-strip { grid-template-columns: 1fr; } }
-        .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
-        .kpi-card .k-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 1.1rem; margin-bottom: 6px;
-        }
-        .k-icon.b-blue   { background: var(--info-soft); color: var(--info); }
-        .k-icon.b-green  { background: var(--profit-soft); color: var(--profit); }
-        .k-icon.b-warn   { background: var(--warn-soft); color: var(--warn); }
-        .k-icon.b-danger { background: var(--danger-soft); color: var(--danger); }
-        .kpi-card .k-label { font-size: 0.72rem; color: var(--neutral); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
-        .kpi-card .k-value { font-size: 1.4rem; font-weight: 700; line-height: 1.1; margin-top: 2px; }
-        .kpi-card .k-trend { font-size: 0.78rem; color: var(--neutral); margin-top: 4px; }
-
-        /* Filter chips */
-        .filter-bar {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 10px 14px; margin-bottom: 18px;
-            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-        }
-        .filter-label {
-            font-size: 0.74rem; color: var(--neutral);
-            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
-            margin-right: 4px;
-        }
-        .filter-chip {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 5px 12px; border-radius: 999px;
-            background: var(--surface-2); color: var(--neutral);
-            font-size: 0.82rem; font-weight: 600;
-            border: 1px solid var(--border); text-decoration: none;
-            cursor: pointer;
-        }
-        .filter-chip:hover { background: #e9ecef; color: #212529; }
-        .filter-chip.active { background: var(--info-soft); color: var(--info); border-color: #c8dafc; }
-        .filter-chip.active.f-green  { background: var(--profit-soft); color: var(--profit); border-color: #b3e3c4; }
-        .filter-chip.active.f-warn   { background: var(--warn-soft); color: var(--warn); border-color: #f1d999; }
-        .filter-chip.active.f-danger { background: var(--danger-soft); color: var(--danger); border-color: #f5b7be; }
-        .filter-chip.btn-add {
-            background: var(--surface-2); color: var(--neutral);
-            border: 1px dashed var(--border);
-        }
-        .filter-chip.btn-add:hover { color: var(--info); border-color: var(--info); }
-
-        /* Filter form (collapsible) */
+        /* Filtros avançados (collapse) — específico desta página */
         .filter-form-card {
             background: var(--surface); border: 1px solid var(--border);
             border-radius: 14px; margin-bottom: 18px;
@@ -509,76 +424,79 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
         .check-group .form-check { margin: 0; }
         .check-group .form-check-label { font-size: 0.85rem; }
 
-        /* Data table */
-        .data-table-wrap {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 14px; overflow: hidden;
+        /* Variante extra de chip ativo usada por esta página */
+        .filter-chip.active.f-danger { background: var(--danger-soft); color: var(--danger); border-color: #f5b7be; }
+        .filter-chip.btn-add {
+            background: var(--surface-2); color: var(--neutral);
+            border: 1px dashed var(--border);
         }
-        .data-table-head {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            background: var(--surface-2);
-            flex-wrap: wrap; gap: 10px;
-        }
-        .data-table-head h3 { margin: 0; font-size: 0.95rem; font-weight: 600; }
-        .data-table-head .meta { font-size: 0.82rem; color: var(--neutral); }
-        .data-table-head .meta strong { color: #212529; }
+        .filter-chip.btn-add:hover { color: var(--info); border-color: var(--info); }
 
-        .data-table { width: 100%; margin-bottom: 0; font-size: 0.85rem; }
-        /* Colunas centradas/alinhadas-direita encolhem ao conteúdo; sobra vai para Cedente/Sacado */
+        /* Ajustes específicos da tabela de recebíveis */
         .data-table th.text-center,
         .data-table th.text-end,
         .data-table td.text-center,
         .data-table td.text-end { width: 1%; white-space: nowrap; }
-        .data-table thead th {
-            background: var(--surface-2);
-            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em;
-            color: var(--neutral); font-weight: 700;
-            border-bottom: 1px solid var(--border); border-top: none;
-            padding: 10px 8px; white-space: nowrap;
-        }
-        .data-table thead th a { color: inherit; text-decoration: none; }
-        .data-table thead th a:hover { color: var(--info); }
-        .data-table tbody td {
-            padding: 10px 8px; vertical-align: middle;
-            border-top: 1px solid var(--border);
-        }
         .data-table tbody td.nowrap { white-space: nowrap; }
-        .data-table tbody tr:hover { background: #fafbfd; }
-        .data-table .num { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+        .data-table .num { white-space: nowrap; }
         .data-table tfoot td {
             background: var(--surface-2); font-weight: 700;
             border-top: 2px solid var(--border);
             padding: 10px 8px; font-size: 0.82rem;
         }
-        /* Status row tints (ainda usados pelo JS via classe) */
-        .data-table tr.table-danger td { background-color: #fbe7ea; }
-        .data-table tr.table-light td { background-color: #f7f8fa; color: var(--neutral); }
-        .data-table tr.table-warning td { background-color: #fff3d6; }
-        .data-table tr.table-primary td { background-color: var(--info-soft); }
-
-        .pill-tipo {
-            display: inline-flex; align-items: center; gap: 4px;
-            padding: 3px 8px; border-radius: 999px;
-            font-size: 0.72rem; font-weight: 600;
+        /* Sem cor de fundo por status: as linhas usam zebra (theme.css).
+           Urgência de vencimento vira um pill em destaque na coluna Vencimento. */
+        .venc-pill {
+            display: inline-block;
+            padding: 1px 9px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            white-space: nowrap;
+            margin-top: 2px;
         }
-        .pill-tipo.antecip { background: var(--profit-soft); color: var(--profit); }
-        .pill-tipo.empr    { background: var(--warn-soft); color: var(--warn); }
+        .venc-pill.atraso { background: var(--danger-soft); color: var(--danger); }
+        .venc-pill.soon   { background: var(--warn-soft);   color: var(--warn); }
 
-        .status-pill {
-            display: inline-flex; align-items: center; gap: 4px;
-            padding: 3px 8px; border-radius: 999px;
-            font-size: 0.72rem; font-weight: 600; white-space: nowrap;
+        /* Rodapé de totais: barra com rótulos claros em vez de números empilhados */
+        td.totals-foot { padding: 0 !important; background: var(--surface-2); border-top: 2px solid var(--border); }
+        .totals-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px 24px; flex-wrap: wrap; padding: 12px 18px;
         }
-        .status-pill.s-aberto    { background: var(--info-soft); color: var(--info); }
+        .totals-bar .totals-title {
+            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em;
+            color: var(--neutral); font-weight: 700;
+        }
+        .totals-stats { display: flex; gap: 14px 32px; flex-wrap: wrap; }
+        .tstat { display: flex; flex-direction: column; line-height: 1.25; }
+        .tstat-label {
+            font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.03em;
+            color: var(--neutral); font-weight: 600; margin-bottom: 2px;
+        }
+        .tstat-value { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .tstat-meta .tstat-value { font-size: 0.9rem; font-weight: 600; color: var(--neutral); }
+
+        /* Dieta de cor: tipo é categoria, não status — neutro. */
+        .pill-tipo.antecip,
+        .pill-tipo.empr    { background: #eef0f3; color: #5a6470; }
+
         .status-pill.s-recebido  { background: var(--profit-soft); color: var(--profit); }
-        .status-pill.s-problema  { background: var(--danger-soft); color: var(--danger); }
-        .status-pill.s-parcial   { background: var(--warn-soft); color: var(--warn); }
-        .status-pill.s-compensado{ background: #efe8fa; color: #6f42c1; }
+        .status-pill.s-compensado{ background: #eef0f3; color: #5a6470; }
+
+        /* Barra de ações em massa */
+        .rec-bulk-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 18px;
+            background: var(--info-soft);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .rec-bulk-bar .btn-link { text-decoration: none; }
 
         /* Action button (preservar classe .action-btn pq o JS reinjeta esse HTML) */
-        .row-actions { display: inline-flex; gap: 0; }
         .action-btn {
             width: 28px; height: 28px;
             display: inline-flex; align-items: center; justify-content: center;
@@ -587,6 +505,24 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
             margin: 0;
         }
         .action-btn:not(:last-child) { margin-right: 2px; }
+        /* Dieta de cor: botões de ação em tons suaves (não saturados) para a tabela
+           não virar um mural de quadrados verdes/vermelhos/azuis. A cor semântica
+           continua legível; satura só no hover. Classes Bootstrap preservadas (JS reinjeta). */
+        .action-btn.btn-success,
+        .action-btn.btn-danger,
+        .action-btn.btn-secondary,
+        .action-btn.btn-primary {
+            border-color: transparent;
+            box-shadow: none;
+        }
+        .action-btn.btn-success { background: var(--profit-soft); color: var(--profit); }
+        .action-btn.btn-danger  { background: var(--danger-soft); color: var(--danger); }
+        .action-btn.btn-primary { background: var(--info-soft);   color: var(--info); }
+        .action-btn.btn-secondary { background: #eef0f3; color: #5a6470; }
+        .action-btn.btn-success:hover { background: var(--profit); color: #fff; }
+        .action-btn.btn-danger:hover  { background: var(--danger); color: #fff; }
+        .action-btn.btn-primary:hover { background: var(--info);   color: #fff; }
+        .action-btn.btn-secondary:hover { background: #5a6470; color: #fff; }
 
         /* Coluna de ações sticky à direita */
         .acoes-col {
@@ -595,32 +531,12 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
             box-shadow: -2px 0 5px rgba(0,0,0,0.05);
             white-space: nowrap;
         }
+        /* Coluna sticky acompanha a zebra das linhas (precisa de bg próprio por sobrepor). */
         .data-table thead th.acoes-col { background: var(--surface-2); }
-        .data-table tbody tr:hover td.acoes-col { background: #fafbfd; }
-        .data-table tr.table-danger td.acoes-col { background-color: #fbe7ea; }
-        .data-table tr.table-light td.acoes-col { background-color: #f7f8fa; }
-        .data-table tr.table-warning td.acoes-col { background-color: #fff3d6; }
-        .data-table tr.table-primary td.acoes-col { background-color: var(--info-soft); }
         .data-table tfoot td.acoes-col { background: var(--surface-2); }
-
-        .pagination-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 18px;
-            border-top: 1px solid var(--border);
-            background: var(--surface-2);
-            flex-wrap: wrap; gap: 10px;
-        }
-        .pagination-bar .info { font-size: 0.82rem; color: var(--neutral); }
-        .pagination-bar .pagination { margin: 0; }
-        .pagination-bar .page-link { padding: 4px 10px; font-size: 0.82rem; color: var(--info); border-color: var(--border); }
-        .pagination-bar .page-item.active .page-link { background: var(--info); border-color: var(--info); color: #fff; }
-
-        .empty-state {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 14px; padding: 60px 20px;
-            text-align: center; color: var(--neutral);
-        }
-        .empty-state i { font-size: 3.5rem; opacity: 0.4; }
+        .data-table tbody tr:nth-child(odd)  td.acoes-col { background: #ffffff; }
+        .data-table tbody tr:nth-child(even) td.acoes-col { background: #f7f8fa; }
+        .data-table tbody tr:hover td.acoes-col { background: #eef2f8; }
 
         /* Tooltip customizado (preservado — usado por status Recebido) */
         .tooltip-wrapper { position: relative; display: inline-block; }
@@ -640,9 +556,6 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
         }
         .tooltip-wrapper:hover .tooltip-text { visibility: visible; opacity: 1; }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
 
     <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
 
@@ -694,7 +607,7 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                 <div class="k-trend">recebíveis no sistema</div>
             </div>
             <div class="kpi-card">
-                <div class="k-icon b-warn"><i class="bi bi-hourglass-split"></i></div>
+                <div class="k-icon b-blue"><i class="bi bi-hourglass-split"></i></div>
                 <div class="k-label">Em aberto</div>
                 <div class="k-value"><?php echo moedaCompact($kpis['em_aberto_valor']); ?></div>
                 <div class="k-trend"><?php echo $kpis['em_aberto_qtd']; ?> a receber</div>
@@ -846,10 +759,17 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                         <strong><?php echo $total_results; ?></strong> recebíve<?php echo $total_results === 1 ? 'l' : 'is'; ?>
                     </div>
                 </div>
+                <div id="recBulkBar" class="rec-bulk-bar" style="display:none;">
+                    <span><strong id="recBulkCount">0</strong> selecionado(s)</span>
+                    <button type="button" class="btn btn-success btn-sm" id="recBulkReceber"><i class="bi bi-check-lg"></i> Marcar como recebido</button>
+                    <button type="button" class="btn btn-link btn-sm text-muted p-0 ms-1" id="recBulkClear">Limpar seleção</button>
+                    <span id="recBulkProgress" class="small text-muted ms-auto"></span>
+                </div>
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
                           <tr>
+                              <th class="text-center" style="width:36px;"><input class="form-check-input" type="checkbox" id="recSelectAll" title="Selecionar todos os recebíveis acionáveis"></th>
                               <th class="text-center"><?php echo getRecebivelSortLink('operacao_id', 'ID Op.', $sort, $dir, $current_filters_for_links); ?></th>
                               <th class="text-center"><?php echo getRecebivelSortLink('id', 'Id Rec.', $sort, $dir, $current_filters_for_links); ?></th>
                               <th><?php echo getRecebivelSortLink('cedente_nome', 'Cedente', $sort, $dir, $current_filters_for_links); ?></th>
@@ -888,6 +808,11 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                             $is_vencido_aberto = $dias_atraso_hoje < 0 && !$is_recebido && !$is_compensado;
                             ?>
                             <tr id="recebivel-row-<?php echo $r['id']; ?>" class="<?php echo $rowClass; ?>">
+                                <td class="text-center">
+                                    <?php if (in_array($r['status_real'], ['Em Aberto', 'Problema', 'Parcialmente Compensado'])): ?>
+                                        <input class="form-check-input rec-select" type="checkbox" data-id="<?php echo (int)$r['id']; ?>" title="Selecionar para ação em massa">
+                                    <?php endif; ?>
+                                </td>
                                 <td class="text-center"><a href="detalhes_operacao.php?id=<?php echo (int)$r['operacao_id']; ?>" title="Ver detalhes da Operação <?php echo (int)$r['operacao_id']; ?>">
                                   <?php echo htmlspecialchars($r['operacao_id']); ?></a></td>
 
@@ -914,9 +839,11 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                                     } elseif ($is_compensado) {
                                         echo '<div class="small text-muted">—</div>';
                                     } elseif ($dias_atraso_hoje < 0) {
-                                        echo '<div class="small text-danger fw-bold nowrap">' . abs($dias_atraso_hoje) . ' dias em atraso</div>';
+                                        echo '<div><span class="venc-pill atraso"><i class="bi bi-exclamation-circle"></i> ' . abs($dias_atraso_hoje) . ' dias em atraso</span></div>';
                                     } elseif ($dias_atraso_hoje === 0) {
-                                        echo '<div class="small text-warning fw-bold">vence hoje</div>';
+                                        echo '<div><span class="venc-pill soon">vence hoje</span></div>';
+                                    } elseif ($dias_atraso_hoje <= 7) {
+                                        echo '<div><span class="venc-pill soon">em ' . htmlspecialchars($dias_atraso_hoje) . ' dias</span></div>';
                                     } else {
                                         echo '<div class="small text-muted nowrap">em ' . htmlspecialchars($dias_atraso_hoje) . ' dias</div>';
                                     }
@@ -974,21 +901,31 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                     <?php if (!empty($recebiveis)): ?>
                     <tfoot>
                         <tr>
-                            <td colspan="9" class="text-end">TOTAIS (filtros aplicados):</td>
-                            <td class="text-end num">
-                                <div class="fw-bold"><?php echo formatHtmlCurrency($filtered_total_original); ?></div>
-                                <div class="small text-success" title="Recebido (soma de valor_recebido nos títulos com status Recebido)">
-                                    <i class="bi bi-check-circle"></i> <?php echo formatHtmlCurrency($filtered_total_recebido); ?>
+                            <td colspan="13" class="totals-foot">
+                                <div class="totals-bar">
+                                    <div class="totals-title"><i class="bi bi-calculator"></i> Totais dos filtros aplicados</div>
+                                    <div class="totals-stats">
+                                        <div class="tstat">
+                                            <span class="tstat-label">Valor total</span>
+                                            <span class="tstat-value" title="Soma do valor de todos os recebíveis filtrados"><?php echo formatHtmlCurrency($filtered_total_original); ?></span>
+                                        </div>
+                                        <div class="tstat">
+                                            <span class="tstat-label"><i class="bi bi-check-circle-fill text-success"></i> Já recebido</span>
+                                            <span class="tstat-value" title="Quanto já entrou (soma do valor recebido nos títulos com status Recebido)"><?php echo formatHtmlCurrency($filtered_total_recebido); ?></span>
+                                        </div>
+                                        <div class="tstat">
+                                            <span class="tstat-label"><i class="bi bi-hourglass-split text-warning"></i> Em aberto</span>
+                                            <span class="tstat-value" title="Quanto ainda falta receber (soma dos títulos não recebidos)">
+                                                <?php echo formatHtmlCurrency($filtered_total_em_aberto); ?>
+                                                <?php if ($filtered_qtd_em_aberto > 0): ?><small class="text-muted fw-normal">· <?php echo $filtered_qtd_em_aberto; ?> tít.</small><?php endif; ?>
+                                            </span>
+                                        </div>
+                                        <div class="tstat tstat-meta">
+                                            <span class="tstat-label">Exibindo</span>
+                                            <span class="tstat-value"><?php echo count($recebiveis); ?> de <?php echo $total_results; ?></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="small text-warning" title="Em aberto (soma de valor_original nos títulos não recebidos)">
-                                    <i class="bi bi-hourglass-split"></i> <?php echo formatHtmlCurrency($filtered_total_em_aberto); ?>
-                                    <?php if ($filtered_qtd_em_aberto > 0): ?>
-                                        <span class="text-muted">(<?php echo $filtered_qtd_em_aberto; ?>)</span>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                            <td colspan="2" class="text-center text-muted small acoes-col">
-                                <?php echo count($recebiveis); ?> de <?php echo $total_results; ?>
                             </td>
                         </tr>
                     </tfoot>
@@ -1089,8 +1026,6 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
     <script>
 document.addEventListener('DOMContentLoaded', function () {
     const feedbackDiv = document.getElementById('status-feedback');
@@ -1121,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', function () {
             bodyParams += '&valor_recebido=' + encodeURIComponent(valorRecebido);
         }
 
-        fetch('atualizar_status.php', {
+        return fetch('atualizar_status.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -1195,14 +1130,76 @@ document.addEventListener('DOMContentLoaded', function () {
             const recebivelId = document.getElementById('modal_recebivel_id').value;
             const newStatus = document.getElementById('modal_new_status').value;
             const valorRecebido = document.getElementById('modal_valor_recebido').value;
-            
+
             if (!valorRecebido || parseFloat(valorRecebido) < 0) {
                 alert('Por favor, informe um valor recebido válido.');
                 return;
             }
-            
+
             modalRecebimento.hide();
             performStatusUpdate(recebivelId, newStatus, valorRecebido);
+        });
+    }
+
+    /* ===== Ações em massa: marcar vários como recebido ===== */
+    const recSelectAll   = document.getElementById('recSelectAll');
+    const recBulkBar     = document.getElementById('recBulkBar');
+    const recBulkCount   = document.getElementById('recBulkCount');
+    const recBulkProgress = document.getElementById('recBulkProgress');
+    const recBulkReceber = document.getElementById('recBulkReceber');
+    const recBulkClear   = document.getElementById('recBulkClear');
+
+    const recCheckboxes = () => Array.from(document.querySelectorAll('.rec-select'));
+    const recSelected = () => recCheckboxes().filter(cb => cb.checked);
+
+    function refreshBulkBar() {
+        const all = recCheckboxes();
+        const n = recSelected().length;
+        if (recBulkCount) recBulkCount.textContent = n;
+        if (recBulkBar) recBulkBar.style.display = n > 0 ? 'flex' : 'none';
+        if (recSelectAll) {
+            recSelectAll.checked = all.length > 0 && n === all.length;
+            recSelectAll.indeterminate = n > 0 && n < all.length;
+        }
+    }
+
+    if (recSelectAll) {
+        recSelectAll.addEventListener('change', function () {
+            recCheckboxes().forEach(cb => { cb.checked = recSelectAll.checked; });
+            refreshBulkBar();
+        });
+    }
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.classList && e.target.classList.contains('rec-select')) refreshBulkBar();
+    });
+    if (recBulkClear) {
+        recBulkClear.addEventListener('click', function () {
+            recCheckboxes().forEach(cb => { cb.checked = false; });
+            refreshBulkBar();
+        });
+    }
+    if (recBulkReceber) {
+        recBulkReceber.addEventListener('click', async function () {
+            const selected = recSelected();
+            if (!selected.length) return;
+            if (!confirm('Marcar ' + selected.length + ' recebível(is) como recebido?')) return;
+
+            recBulkReceber.disabled = true;
+            let done = 0;
+            for (const cb of selected) {
+                const id = cb.dataset.id;
+                const row = document.getElementById('recebivel-row-' + id);
+                const recBtn = row ? row.querySelector('.update-status-btn[data-status="Recebido"]') : null;
+                const valor = recBtn ? recBtn.dataset.valorCorrigido : null;
+                if (recBulkProgress) recBulkProgress.textContent = 'Processando ' + (done + 1) + '/' + selected.length + '…';
+                try { await performStatusUpdate(id, 'Recebido', valor); } catch (err) { /* feedback já tratado */ }
+                cb.checked = false;
+                cb.remove(); // linha agora está "Recebido": não é mais selecionável
+                done++;
+            }
+            if (recBulkProgress) recBulkProgress.textContent = done + ' recebível(is) atualizado(s).';
+            recBulkReceber.disabled = false;
+            refreshBulkBar();
         });
     }
 });

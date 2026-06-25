@@ -49,15 +49,10 @@ try {
 $alertStatus = $_GET['status'] ?? '';
 $alertMessage = trim($_GET['msg'] ?? '');
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars($pageTitle); ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<?php
+require_once 'head.php';
+?>
     <style>
-        body { background: #eef2f7; }
         .form-card {
             background: #fff; border: 1px solid #e3e8ef; border-radius: 14px;
             padding: 24px; max-width: 720px; margin: 0 auto;
@@ -66,16 +61,7 @@ $alertMessage = trim($_GET['msg'] ?? '');
             font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;
             color: #6c757d; font-weight: 600; margin-bottom: 6px;
         }
-        .page-toolbar {
-            background: #fff; border: 1px solid #e3e8ef; border-radius: 12px;
-            padding: 14px 18px; margin-bottom: 18px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
     <div class="container px-3 px-md-4 mt-4" style="max-width: 1100px;">
         <div class="page-toolbar">
             <h1><i class="bi bi-person-plus-fill text-info"></i> <?php echo htmlspecialchars($pageTitle); ?></h1>
@@ -165,11 +151,10 @@ $alertMessage = trim($_GET['msg'] ?? '');
             </form>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.9/jquery.inputmask.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.9/jquery.inputmask.min.js" defer></script>
     <script>
-        $(function() {
+        document.addEventListener('DOMContentLoaded', function() {
             $('#telefone').inputmask({ mask: "(99) 9999[9]-9999", greedy: false, clearIncomplete: true, placeholder: "_" });
         });
     </script>

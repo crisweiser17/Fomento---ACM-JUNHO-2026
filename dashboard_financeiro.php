@@ -1,23 +1,21 @@
-<?php 
-require_once 'auth_check.php'; 
+<?php require_once 'auth_check.php'; ?>
+<?php
+$pageTitle = 'Dashboard Financeiro';
+$withChart = true;
+require_once 'head.php';
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Financeiro</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
-        body { background-color: #f8f9fa; }
+        /* Estilos específicos do dashboard (tokens, body bg e componentes base vêm de theme.css) */
         .card-metric { transition: transform 0.2s; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 1rem; }
         .card-metric:hover { transform: translateY(-5px); }
         .metric-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #6c757d; font-weight: 600; }
         .metric-value { font-size: 1.5rem; font-weight: bold; color: #343a40; }
         .metric-value-lg { font-size: 1.8rem; }
+        /* Hierarquia: a métrica-herói (Lucro Realizado) recebe destaque sutil.
+           Lucro = verde (regra de cor), inclusive no herói. */
+        .card-metric.is-hero { background: var(--app-profit-soft, #d1f0dc); }
+        .card-metric.is-hero .metric-value { font-size: 2.15rem; color: var(--app-profit, #198754); }
+        .card-metric.is-hero .metric-title { color: var(--app-profit, #198754); }
         .table-container { background: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 1.5rem; margin-bottom: 1.5rem; }
         .section-title { border-bottom: 2px solid #dee2e6; padding-bottom: 10px; margin-bottom: 20px; color: #495057; font-size: 1.1rem; }
         .bg-light-blue { background-color: #e9f2fb; }
@@ -26,13 +24,10 @@ require_once 'auth_check.php';
         .scroll-list thead th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 1; }
         .totals-row { background-color: #f8f9fa; border-top: 2px solid #dee2e6; }
         .trend { font-size: 0.75rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-block; }
-        .trend-up { color: #198754; background-color: #d1e7dd; }
-        .trend-down { color: #dc3545; background-color: #f8d7da; }
+        .trend-up { color: var(--app-profit); background-color: var(--app-profit-soft); }
+        .trend-down { color: var(--app-danger); background-color: var(--app-danger-soft); }
         .trend-flat { color: #6c757d; background-color: #e9ecef; }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
 
     <div class="container-fluid px-4 py-4">
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -73,7 +68,7 @@ require_once 'auth_check.php';
                     </div>
                 </div>
                 <div class="col-md">
-                    <div class="card card-metric border-start border-4 border-info">
+                    <div class="card card-metric is-hero border-start border-4 border-success">
                         <div class="card-body">
                             <div class="metric-title">Lucro Realizado</div>
                             <div class="metric-value metric-value-lg" id="geral-lucro">R$ 0,00</div>
@@ -106,10 +101,10 @@ require_once 'auth_check.php';
             <h5 class="section-title"><i class="bi bi-piggy-bank"></i> Caixa Realizado</h5>
             <div class="row">
                 <div class="col-md-3">
-                    <div class="card card-metric border-start border-4 border-info">
+                    <div class="card card-metric border-start border-4 border-success">
                         <div class="card-body">
                             <div class="metric-title">Lucro Acumulado</div>
-                            <div class="metric-value text-info" id="caixa-lucro">R$ 0,00</div>
+                            <div class="metric-value text-success" id="caixa-lucro">R$ 0,00</div>
                         </div>
                     </div>
                 </div>
@@ -122,10 +117,10 @@ require_once 'auth_check.php';
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card card-metric border-start border-4" style="border-color:#6610f2 !important;">
+                    <div class="card card-metric border-start border-4" style="border-color: var(--app-neutral) !important;">
                         <div class="card-body">
                             <div class="metric-title">Distribuído aos Sócios</div>
-                            <div class="metric-value" style="color:#6610f2" id="caixa-distribuido">R$ 0,00</div>
+                            <div class="metric-value" id="caixa-distribuido">R$ 0,00</div>
                         </div>
                     </div>
                 </div>
@@ -353,7 +348,6 @@ require_once 'auth_check.php';
 
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const formatCurrency = (value) => {
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -428,8 +422,6 @@ require_once 'auth_check.php';
             countEl.textContent = `${lista.length} título${lista.length > 1 ? 's' : ''}`;
             totalEl.textContent = formatCurrency(total);
         };
-
-        Chart.register(ChartDataLabels);
 
         const renderTop5 = (data, tbodyId, showVencido = true) => {
             const tbody = document.getElementById(tbodyId);
@@ -767,6 +759,9 @@ require_once 'auth_check.php';
         };
 
         document.addEventListener('DOMContentLoaded', () => {
+            // chart.js é carregado com defer (head.php), então registramos o plugin
+            // só após o DOM/scripts deferidos estarem prontos.
+            Chart.register(ChartDataLabels);
             const periodSelect = document.getElementById('periodFilter');
             if (periodSelect) {
                 periodSelect.addEventListener('change', carregarDashboard);

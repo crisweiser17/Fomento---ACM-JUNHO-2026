@@ -25,17 +25,10 @@ if ($id) {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $is_edit ? 'Editar Usuário' : 'Novo Usuário'; ?> - Sistema</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
+<?php
+$pageTitle = $is_edit ? 'Editar Usuário' : 'Novo Usuário';
+require_once 'head.php';
+?>
 
     <div class="container-fluid px-3 px-md-4 mt-4">
         <div class="row justify-content-center">
@@ -45,7 +38,7 @@ if ($id) {
                         <h4 class="mb-0"><?php echo $is_edit ? 'Alterar Senha do Usuário' : 'Criar Novo Usuário'; ?></h4>
                     </div>
                     <div class="card-body">
-                        <form action="salvar_usuario.php" method="POST" id="formUsuario">
+                        <form action="salvar_usuario.php" method="POST" id="formUsuario" data-no-loading="1">
                             <?php if ($is_edit): ?>
                                 <input type="hidden" name="id" value="<?php echo htmlspecialchars($usuario['id']); ?>">
                             <?php endif; ?>
@@ -73,8 +66,8 @@ if ($id) {
                             </div>
 
                             <div class="d-flex justify-content-between">
-                                <a href="listar_usuarios.php" class="btn btn-secondary">Cancelar</a>
-                                <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Salvar</button>
+                                <a href="listar_usuarios.php" class="btn btn-outline-secondary">Cancelar</a>
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Salvar</button>
                             </div>
                         </form>
                     </div>
@@ -83,7 +76,6 @@ if ($id) {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.getElementById('formUsuario').addEventListener('submit', function(e) {
             var senha = document.getElementById('senha').value;

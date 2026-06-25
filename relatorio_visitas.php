@@ -146,59 +146,16 @@ function periodoLabel($p, $ini, $fim) {
     return ($map[$p] ?? '—') . ' · ' . date('d/m/Y', strtotime($ini)) . ' a ' . date('d/m/Y', strtotime($fim));
 }
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatório de Visitas por Usuário</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<?php
+$pageTitle = 'Visitas por Usuário';
+require_once 'head.php';
+?>
     <style>
-        :root {
-            --profit: #198754; --profit-soft: #d1f0dc;
-            --warn: #b76b00; --warn-soft: #fff3d6;
-            --danger: #b02a37; --danger-soft: #fde2e4;
-            --info: #0a4ea8; --info-soft: #eef4ff;
-            --neutral: #6c757d;
-            --surface: #ffffff; --surface-2: #f6f8fb;
-            --border: #e3e8ef;
-        }
-        body { background: #eef2f7; font-size: 0.95rem; }
-        .page-toolbar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
-        .id-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--info-soft); color: var(--info); font-size: 0.78rem; font-weight: 700; margin-left: 6px; }
+        /* Estilos específicos do relatório (tokens e componentes base vêm de theme.css) */
+        body { font-size: 0.95rem; }
 
-        .filter-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .filter-label { font-size: 0.74rem; color: var(--neutral); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-right: 4px; }
-        .filter-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: var(--surface-2); color: var(--neutral); font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border); text-decoration: none; cursor: pointer; }
-        .filter-chip:hover { background: #e9ecef; color: #212529; }
+        /* Esta página usa .filter-chip.active (variante própria do estado ativo) */
         .filter-chip.active { background: var(--info-soft); color: var(--info); border-color: #c8dafc; }
-
-        .kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
-        @media (max-width: 1100px) { .kpi-strip { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 600px)  { .kpi-strip { grid-template-columns: repeat(2, 1fr); } }
-        .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
-        .kpi-card .k-icon { width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-bottom: 6px; }
-        .k-icon.b-blue   { background: var(--info-soft); color: var(--info); }
-        .k-icon.b-green  { background: var(--profit-soft); color: var(--profit); }
-        .k-icon.b-warn   { background: var(--warn-soft); color: var(--warn); }
-        .k-icon.b-purple { background: #efe8fa; color: #6f42c1; }
-        .k-icon.b-danger { background: var(--danger-soft); color: var(--danger); }
-        .kpi-card .k-label { font-size: 0.72rem; color: var(--neutral); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
-        .kpi-card .k-value { font-size: 1.4rem; font-weight: 700; line-height: 1.1; margin-top: 2px; }
-        .kpi-card .k-trend { font-size: 0.78rem; color: var(--neutral); margin-top: 4px; }
-
-        .data-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-        .data-table-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
-        .data-table-head h3 { margin: 0; font-size: 0.95rem; font-weight: 600; }
-        .data-table { width: 100%; margin-bottom: 0; font-size: 0.9rem; }
-        .data-table thead th { background: var(--surface-2); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--neutral); font-weight: 700; border-bottom: 1px solid var(--border); border-top: none; padding: 10px 12px; white-space: nowrap; }
-        .data-table tbody td { padding: 12px; vertical-align: middle; border-top: 1px solid var(--border); text-align: center; }
-        .data-table tbody td:first-child { text-align: left; }
-        .data-table tbody tr:hover { background: #fafbfd; }
-        .data-table tfoot td { background: var(--surface-2); font-weight: 700; border-top: 2px solid var(--border); padding: 10px 12px; text-align: center; font-size: 0.85rem; }
-        .data-table tfoot td:first-child { text-align: left; }
 
         .num-cell { font-variant-numeric: tabular-nums; font-weight: 600; }
         .num-cell a { color: var(--info); text-decoration: none; padding: 3px 8px; border-radius: 6px; display: inline-block; min-width: 32px; }
@@ -220,9 +177,7 @@ function periodoLabel($p, $ini, $fim) {
 
         .periodo-badge { background: var(--info-soft); color: var(--info); padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
+
     <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
 
         <div class="page-toolbar">
@@ -373,6 +328,5 @@ function periodoLabel($p, $ini, $fim) {
             </div>
         <?php endif; ?>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

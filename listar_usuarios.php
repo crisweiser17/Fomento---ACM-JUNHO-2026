@@ -1,6 +1,7 @@
 <?php
 require_once 'auth_check.php';
 require_once 'db_connection.php';
+require_once 'ui_helpers.php';
 
 $message = '';
 $messageType = '';
@@ -66,100 +67,34 @@ function dataHumana($dataStr) {
     } catch (Exception $e) { return '—'; }
 }
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Usuários do Sistema</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<?php
+$pageTitle = 'Usuários';
+require_once 'head.php';
+?>
     <style>
-        :root {
-            --profit: #198754; --profit-soft: #d1f0dc;
-            --warn: #b76b00; --warn-soft: #fff3d6;
-            --danger: #b02a37;
-            --info: #0a4ea8; --info-soft: #eef4ff;
-            --neutral: #6c757d;
-            --surface: #ffffff; --surface-2: #f6f8fb;
-            --border: #e3e8ef;
-        }
-        body { background: #eef2f7; font-size: 0.95rem; }
+        /* Estilos específicos da página (tokens e componentes base vêm de theme.css) */
+        body { font-size: 0.95rem; }
 
-        .page-toolbar {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px 18px; margin-bottom: 18px;
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 12px;
-        }
-        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
-        .id-pill {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 4px 10px; border-radius: 999px;
-            background: var(--info-soft); color: var(--info);
-            font-size: 0.78rem; font-weight: 700; margin-left: 6px;
-        }
-
+        /* Layout do grid de KPIs (3 colunas nesta página) */
         .kpi-strip {
             display: grid; grid-template-columns: repeat(3, 1fr);
             gap: 12px; margin-bottom: 18px;
         }
         @media (max-width: 768px) { .kpi-strip { grid-template-columns: 1fr; } }
-        .kpi-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px 16px;
-        }
-        .kpi-card .k-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 1.1rem; margin-bottom: 6px;
-        }
-        .k-icon.b-blue   { background: var(--info-soft); color: var(--info); }
-        .k-icon.b-green  { background: var(--profit-soft); color: var(--profit); }
-        .k-icon.b-purple { background: #efe8fa; color: #6f42c1; }
-        .kpi-card .k-label {
-            font-size: 0.72rem; color: var(--neutral);
-            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
-        }
-        .kpi-card .k-value { font-size: 1.4rem; font-weight: 700; line-height: 1.1; margin-top: 2px; }
-        .kpi-card .k-trend { font-size: 0.78rem; color: var(--neutral); margin-top: 4px; }
 
-        .data-table-wrap {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 14px; overflow: hidden;
-        }
-        .data-table-head {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            background: var(--surface-2);
-        }
-        .data-table-head h3 { margin: 0; font-size: 0.95rem; font-weight: 600; }
-        .data-table-head .meta { font-size: 0.78rem; color: var(--neutral); }
-        .data-table { width: 100%; margin-bottom: 0; font-size: 0.9rem; }
-        .data-table thead th {
-            background: var(--surface-2);
-            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em;
-            color: var(--neutral); font-weight: 700;
-            border-bottom: 1px solid var(--border); border-top: none;
-            padding: 10px 12px; white-space: nowrap;
-        }
-        .data-table tbody td {
-            padding: 12px; vertical-align: middle;
-            border-top: 1px solid var(--border);
-        }
-        .data-table tbody tr:hover { background: #fafbfd; }
-
+        /* Célula de usuário com avatar e e-mail */
         .user-cell { display: flex; align-items: center; gap: 10px; }
         .user-cell .avatar {
             width: 36px; height: 36px; border-radius: 50%;
-            color: #fff; display: inline-flex; align-items: center; justify-content: center;
+            display: inline-flex; align-items: center; justify-content: center;
             font-weight: 700; font-size: 0.82rem; flex-shrink: 0;
+            /* Dieta de cor: avatar único (tinta da marca), sem arco-íris. */
+            background: var(--app-info-soft); color: var(--app-info);
         }
-        .user-cell .avatar.b1 { background: linear-gradient(135deg, #0d6efd, #15b079); }
-        .user-cell .avatar.b2 { background: linear-gradient(135deg, #fd7e14, #b76b00); }
-        .user-cell .avatar.b3 { background: linear-gradient(135deg, #0a8754, #15b079); }
-        .user-cell .avatar.b4 { background: linear-gradient(135deg, #d63384, #b02a37); }
+        .user-cell .avatar.b1,
+        .user-cell .avatar.b2,
+        .user-cell .avatar.b3,
+        .user-cell .avatar.b4 { background: var(--app-info-soft); color: var(--app-info); }
         .user-cell .name { font-weight: 600; font-size: 0.92rem; line-height: 1.2; }
         .user-cell .meta { font-size: 0.75rem; color: var(--neutral); }
 
@@ -170,29 +105,7 @@ function dataHumana($dataStr) {
             text-transform: uppercase; letter-spacing: 0.04em;
             margin-left: 6px; vertical-align: middle;
         }
-
-        .row-actions { display: inline-flex; gap: 4px; }
-        .row-actions .btn-ico {
-            width: 32px; height: 32px;
-            display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 6px; color: var(--neutral); background: transparent;
-            border: 1px solid transparent; text-decoration: none; transition: background 0.15s;
-        }
-        .row-actions .btn-ico:hover { background: var(--surface-2); border-color: var(--border); color: var(--info); }
-        .row-actions .btn-ico.danger:hover { color: var(--danger); border-color: #f1c8cd; background: #fbecee; }
-        .row-actions .btn-ico:disabled,
-        .row-actions .btn-ico[disabled] { opacity: 0.35; cursor: not-allowed; }
-
-        .empty-state {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 14px; padding: 60px 20px;
-            text-align: center; color: var(--neutral);
-        }
-        .empty-state i { font-size: 3.5rem; opacity: 0.4; }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
 
     <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1100px;">
 
@@ -236,7 +149,7 @@ function dataHumana($dataStr) {
                 <div class="k-trend">criados nos últimos 30 dias</div>
             </div>
             <div class="kpi-card">
-                <div class="k-icon b-purple"><i class="bi bi-person-badge-fill"></i></div>
+                <div class="k-icon b-blue"><i class="bi bi-person-badge-fill"></i></div>
                 <div class="k-label">Sua sessão</div>
                 <div class="k-value" style="font-size:0.95rem;line-height:1.4;word-break:break-word;">
                     <?php echo htmlspecialchars($_SESSION['user_email'] ?? 'desconhecido'); ?>
@@ -247,12 +160,12 @@ function dataHumana($dataStr) {
 
         <!-- Tabela -->
         <?php if (empty($usuarios)): ?>
-            <div class="empty-state">
-                <i class="bi bi-shield-lock"></i>
-                <h4 class="mt-3 text-muted">Nenhum usuário cadastrado</h4>
-                <p class="mb-3">Comece adicionando o primeiro usuário do sistema.</p>
-                <a href="form_usuario.php" class="btn btn-primary"><i class="bi bi-person-plus-fill"></i> Novo Usuário</a>
-            </div>
+            <?php echo ui_empty_state(
+                'bi-shield-lock',
+                'Nenhum usuário cadastrado',
+                'Comece adicionando o primeiro usuário do sistema.',
+                ['label' => 'Novo Usuário', 'href' => 'form_usuario.php', 'icon' => 'bi-person-plus-fill']
+            ); ?>
         <?php else: ?>
             <div class="data-table-wrap">
                 <div class="data-table-head">
@@ -297,7 +210,7 @@ function dataHumana($dataStr) {
                                             </a>
                                             <?php if (!$isMe): ?>
                                                 <a href="excluir_usuario.php?id=<?php echo (int)$u['id']; ?>" class="btn-ico danger" title="Excluir usuário"
-                                                   onclick="return confirm('Tem certeza que deseja excluir o usuário <?php echo htmlspecialchars($u['email'], ENT_QUOTES); ?>?');">
+                                                   data-confirm="Tem certeza que deseja excluir este usuário?">
                                                     <i class="bi bi-trash3-fill"></i>
                                                 </a>
                                             <?php else: ?>
@@ -316,7 +229,5 @@ function dataHumana($dataStr) {
         <?php endif; ?>
 
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

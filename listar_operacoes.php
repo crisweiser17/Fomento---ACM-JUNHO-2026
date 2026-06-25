@@ -1,5 +1,6 @@
 <?php require_once 'auth_check.php'; ?><?php
 require_once 'db_connection.php';
+require_once 'ui_helpers.php';
 
 // --- Configurações de Paginação, Ordenação e Busca ---
 $results_per_page = 15;
@@ -328,94 +329,25 @@ $current_filters = [
 ];
 
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Operações</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<?php
+$pageTitle = 'Operações';
+require_once 'head.php';
+?>
     <style>
-        :root {
-            --profit: #198754; --profit-soft: #d1f0dc;
-            --warn: #b76b00; --warn-soft: #fff3d6;
-            --danger: #b02a37; --danger-soft: #fde2e4;
-            --info: #0a4ea8; --info-soft: #eef4ff;
-            --neutral: #6c757d;
-            --surface: #ffffff; --surface-2: #f6f8fb;
-            --border: #e3e8ef;
-        }
-        body { background: #eef2f7; font-size: 0.95rem; }
+        /* Estilos específicos da página (tokens e componentes base vêm de theme.css) */
+        body { font-size: 0.95rem; }
 
-        .page-toolbar {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px 18px; margin-bottom: 18px;
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 12px;
-        }
-        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
-        .id-pill {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 4px 10px; border-radius: 999px;
-            background: var(--info-soft); color: var(--info);
-            font-size: 0.78rem; font-weight: 700; margin-left: 6px;
-        }
-
-        .kpi-strip {
-            display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 12px; margin-bottom: 18px;
-        }
-        @media (max-width: 992px) { .kpi-strip { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 576px) { .kpi-strip { grid-template-columns: 1fr; } }
-        .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
-        .kpi-card .k-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 1.1rem; margin-bottom: 6px;
-        }
-        .k-icon.b-blue   { background: var(--info-soft); color: var(--info); }
-        .k-icon.b-green  { background: var(--profit-soft); color: var(--profit); }
-        .k-icon.b-warn   { background: var(--warn-soft); color: var(--warn); }
-        .k-icon.b-purple { background: #efe8fa; color: #6f42c1; }
-        .kpi-card .k-label { font-size: 0.72rem; color: var(--neutral); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
-        .kpi-card .k-value { font-size: 1.4rem; font-weight: 700; line-height: 1.1; margin-top: 2px; }
-        .kpi-card .k-trend { font-size: 0.78rem; color: var(--neutral); margin-top: 4px; }
-        .kpi-card .k-trend.up { color: var(--profit); }
-
-        /* Filter chips */
-        .filter-bar {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 10px 14px; margin-bottom: 18px;
-            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-        }
-        .filter-label {
-            font-size: 0.74rem; color: var(--neutral);
-            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
-        }
-        .filter-chip {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 5px 10px; border-radius: 999px;
-            font-size: 0.82rem; font-weight: 600;
-            border: 1px solid var(--border);
-            text-decoration: none;
-        }
+        /* Variantes de cor dos filter chips (esta página usa f-info/f-green/f-warn) */
         .filter-chip.f-info  { background: var(--info-soft); color: var(--info); border-color: #c8dafc; }
         .filter-chip.f-green { background: var(--profit-soft); color: var(--profit); border-color: #b3e3c4; }
         .filter-chip.f-warn  { background: var(--warn-soft); color: var(--warn); border-color: #f1d999; }
-        .filter-chip .x { cursor: pointer; opacity: 0.6; margin-left: 2px; color: inherit; }
-        .filter-chip .x:hover { opacity: 1; }
         .filter-chip.btn-add {
             background: var(--surface-2); color: var(--neutral);
             border: 1px dashed var(--border); cursor: pointer;
         }
         .filter-chip.btn-add:hover { background: #e9ecef; color: var(--info); border-color: var(--info); }
-        .filter-chip.btn-clear {
-            background: transparent; color: var(--neutral); border: none; cursor: pointer;
-        }
-        .filter-chip.btn-clear:hover { color: var(--danger); }
 
-        /* Filter form (collapsible) */
+        /* Filter form (collapsible) — específico desta página */
         .filter-form-card {
             background: var(--surface); border: 1px solid var(--border);
             border-radius: 14px; margin-bottom: 18px;
@@ -430,127 +362,9 @@ $current_filters = [
             font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.04em;
             color: var(--neutral); font-weight: 600; margin-bottom: 4px; display: block;
         }
-
-        /* Data table */
-        .data-table-wrap {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 14px; overflow: hidden;
-        }
-        .data-table-head {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            background: var(--surface-2);
-            flex-wrap: wrap; gap: 10px;
-        }
-        .data-table-head h3 { margin: 0; font-size: 0.95rem; font-weight: 600; }
-        .data-table-head .meta { font-size: 0.82rem; color: var(--neutral); }
-        .data-table-head .meta strong { color: #212529; }
-        .data-table-head .meta strong.profit { color: var(--profit); }
-
-        .data-table { width: 100%; margin-bottom: 0; font-size: 0.88rem; }
-        .data-table thead th {
-            background: var(--surface-2);
-            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em;
-            color: var(--neutral); font-weight: 700;
-            border-bottom: 1px solid var(--border); border-top: none;
-            padding: 10px 8px; white-space: nowrap;
-        }
-        .data-table thead th a { color: inherit; text-decoration: none; }
-        .data-table thead th a:hover { color: var(--info); }
-        .data-table tbody td {
-            padding: 10px 8px; vertical-align: middle;
-            border-top: 1px solid var(--border);
-        }
-        .data-table tbody tr:hover { background: #fafbfd; }
-        .data-table .num { font-variant-numeric: tabular-nums; font-weight: 600; }
-        .data-table .profit { color: var(--profit); font-weight: 700; }
-        .data-table tfoot td {
-            background: var(--surface-2); font-weight: 700;
-            border-top: 2px solid var(--border);
-            padding: 10px 8px; font-size: 0.82rem;
-        }
-
-        .client-cell { display: flex; align-items: center; gap: 8px; }
-        .client-cell .avatar {
-            width: 30px; height: 30px; border-radius: 50%;
-            color: #fff; display: inline-flex; align-items: center; justify-content: center;
-            font-weight: 700; font-size: 0.72rem; flex-shrink: 0;
-        }
-        .client-cell .avatar.b1 { background: linear-gradient(135deg, #0d6efd, #15b079); }
-        .client-cell .avatar.b2 { background: linear-gradient(135deg, #fd7e14, #b76b00); }
-        .client-cell .avatar.b3 { background: linear-gradient(135deg, #0a8754, #15b079); }
-        .client-cell .avatar.b4 { background: linear-gradient(135deg, #d63384, #b02a37); }
-        .client-cell .name { font-weight: 600; font-size: 0.86rem; line-height: 1.2; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .client-cell .doc { font-size: 0.7rem; color: var(--neutral); }
-
-        .pill-tipo {
-            display: inline-flex; align-items: center; gap: 4px;
-            padding: 3px 8px; border-radius: 999px;
-            font-size: 0.72rem; font-weight: 600;
-        }
-        .pill-tipo.antecip { background: var(--profit-soft); color: var(--profit); }
-        .pill-tipo.empr    { background: var(--warn-soft); color: var(--warn); }
-
-        .status-pill {
-            display: inline-flex; align-items: center; gap: 4px;
-            padding: 3px 8px; border-radius: 999px;
-            font-size: 0.72rem; font-weight: 600;
-        }
-        .status-pill.s-aberto    { background: var(--info-soft); color: var(--info); }
-        .status-pill.s-concluida { background: var(--profit-soft); color: var(--profit); }
-        .status-pill.s-parcial   { background: var(--warn-soft); color: var(--warn); }
-        .status-pill.s-problema  { background: var(--danger-soft); color: var(--danger); }
-
-        .row-actions { display: inline-flex; gap: 4px; }
-        .row-actions .btn-ico {
-            width: 28px; height: 28px;
-            display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 6px; color: var(--neutral); background: transparent;
-            border: 1px solid transparent; text-decoration: none;
-        }
-        .row-actions .btn-ico:hover { background: var(--surface-2); border-color: var(--border); color: var(--info); }
-        .row-actions .btn-ico.danger:hover { color: var(--danger); }
-
-        .pagination-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 18px;
-            border-top: 1px solid var(--border);
-            background: var(--surface-2);
-            flex-wrap: wrap; gap: 10px;
-        }
-        .pagination-bar .info { font-size: 0.82rem; color: var(--neutral); }
-        .pagination-bar .pagination { margin: 0; }
-        .pagination-bar .page-link { padding: 4px 10px; font-size: 0.82rem; color: var(--info); border-color: var(--border); }
-        .pagination-bar .page-item.active .page-link { background: var(--info); border-color: var(--info); color: #fff; }
-
-        .empty-state {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 14px; padding: 60px 20px;
-            text-align: center; color: var(--neutral);
-        }
-        .empty-state i { font-size: 3.5rem; opacity: 0.4; }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
 
     <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
-
-        <?php if (isset($_GET['status'])): ?>
-            <?php if ($_GET['status'] == 'deleted'): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle-fill"></i> Operação e seus recebíveis excluídos com sucesso!
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            <?php elseif ($_GET['status'] == 'error'): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill"></i>
-                    Erro ao excluir operação: <?php echo htmlspecialchars($_GET['msg'] ?? 'Erro desconhecido.'); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            <?php endif; ?>
-        <?php endif; ?>
 
         <?php if (isset($error_message_count)) echo "<div class='alert alert-danger'>$error_message_count</div>"; ?>
         <?php if (isset($error_message_data)) echo "<div class='alert alert-danger'>$error_message_data</div>"; ?>
@@ -596,13 +410,13 @@ $current_filters = [
                 <div class="k-trend">de <?php echo $kpis['total_geral']; ?> totais</div>
             </div>
             <div class="kpi-card">
-                <div class="k-icon b-warn"><i class="bi bi-hourglass-split"></i></div>
+                <div class="k-icon b-blue"><i class="bi bi-hourglass-split"></i></div>
                 <div class="k-label">Saldo em aberto</div>
                 <div class="k-value"><?php echo moedaCompact($kpis['saldo_aberto']); ?></div>
                 <div class="k-trend">títulos a receber</div>
             </div>
             <div class="kpi-card">
-                <div class="k-icon b-purple"><i class="bi bi-bar-chart-fill"></i></div>
+                <div class="k-icon b-blue"><i class="bi bi-bar-chart-fill"></i></div>
                 <div class="k-label">Volume operado</div>
                 <div class="k-value"><?php echo moedaCompact($kpis['volume']); ?></div>
                 <div class="k-trend">total nominal</div>
@@ -741,19 +555,23 @@ $current_filters = [
 
         <!-- Tabela / Empty -->
         <?php if (empty($operacoes) && !isset($error_message_count) && !isset($error_message_data)): ?>
-            <div class="empty-state">
-                <?php if (empty($activeFilters) && empty($search) && (int)$total_results === 0): ?>
-                    <i class="bi bi-inbox"></i>
-                    <h4 class="mt-3 text-muted">Nenhuma operação registrada</h4>
-                    <p>Ainda não há operações cadastradas no sistema.</p>
-                    <a href="simulacao.php" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nova Operação</a>
-                <?php else: ?>
-                    <i class="bi bi-search"></i>
-                    <h4 class="mt-3 text-muted">Nenhum resultado</h4>
-                    <p>Não encontramos operações para os filtros, busca ou página atual.</p>
-                    <a href="listar_operacoes.php" class="btn btn-outline-primary"><i class="bi bi-x-circle"></i> Limpar filtros</a>
-                <?php endif; ?>
-            </div>
+            <?php
+            if (empty($activeFilters) && empty($search) && (int)$total_results === 0) {
+                echo ui_empty_state(
+                    'bi-inbox',
+                    'Nenhuma operação registrada',
+                    'Ainda não há operações cadastradas no sistema.',
+                    ['label' => 'Nova Operação', 'href' => 'simulacao.php', 'icon' => 'bi-plus-circle']
+                );
+            } else {
+                echo ui_empty_state(
+                    'bi-search',
+                    'Nenhum resultado',
+                    'Não encontramos operações para os filtros, busca ou página atual.',
+                    ['label' => 'Limpar filtros', 'href' => 'listar_operacoes.php', 'icon' => 'bi-x-circle']
+                );
+            }
+            ?>
         <?php elseif (!empty($operacoes)): ?>
             <div class="data-table-wrap">
                 <div class="data-table-head">
@@ -775,9 +593,9 @@ $current_filters = [
                                 <th class="text-end"><?php echo getSortLink('total_original_calc', 'Nominal', $sort, $dir, $search, $current_filters); ?></th>
                                 <th class="text-end"><?php echo getSortLink('total_liquido_pago_calc', 'Líquido pago', $sort, $dir, $search, $current_filters); ?></th>
                                 <th class="text-end"><?php echo getSortLink('total_lucro_liquido_calc', 'Lucro', $sort, $dir, $search, $current_filters); ?></th>
-                                <th class="text-center"><?php echo getSortLink('media_dias_operacao', 'Dias', $sort, $dir, $search, $current_filters); ?></th>
+                                <th class="text-center col-optional"><?php echo getSortLink('media_dias_operacao', 'Dias', $sort, $dir, $search, $current_filters); ?></th>
                                 <th class="text-center"><?php echo getSortLink('status_operacao', 'Status', $sort, $dir, $search, $current_filters); ?></th>
-                                <th class="text-center"><?php echo getSortLink('num_recebiveis', '# Rec.', $sort, $dir, $search, $current_filters); ?></th>
+                                <th class="text-center col-optional"><?php echo getSortLink('num_recebiveis', '# Rec.', $sort, $dir, $search, $current_filters); ?></th>
                                 <th class="text-end"><?php echo getSortLink('saldo_em_aberto', 'Saldo aberto', $sort, $dir, $search, $current_filters); ?></th>
                                 <th><?php echo getSortLink('data_base_calculo', 'Data', $sort, $dir, $search, $current_filters); ?></th>
                                 <th class="text-center" style="width:90px;">Ações</th>
@@ -807,11 +625,11 @@ $current_filters = [
                                     <td class="text-end num"><?php echo formatHtmlCurrency($op['total_original_calc']); ?></td>
                                     <td class="text-end num"><?php echo formatHtmlCurrency($op['total_liquido_pago_calc']); ?></td>
                                     <td class="text-end profit"><?php echo formatHtmlCurrency($op['total_lucro_liquido_calc']); ?></td>
-                                    <td class="text-center text-muted">
+                                    <td class="text-center text-muted col-optional">
                                         <?php echo isset($op['media_dias_operacao']) ? round((float)$op['media_dias_operacao']) : '—'; ?>
                                     </td>
                                     <td class="text-center"><?php echo statusPill($op['status_operacao']); ?></td>
-                                    <td class="text-center"><?php echo (int)($op['num_recebiveis'] ?? 0); ?></td>
+                                    <td class="text-center col-optional"><?php echo (int)($op['num_recebiveis'] ?? 0); ?></td>
                                     <td class="text-end num">
                                         <?php
                                         $saldo = (float)($op['saldo_em_aberto'] ?? 0);
@@ -850,9 +668,9 @@ $current_filters = [
                                 <td class="text-end"><?php echo formatHtmlCurrency($total_original); ?></td>
                                 <td class="text-end"><?php echo formatHtmlCurrency($total_liquido); ?></td>
                                 <td class="text-end profit"><?php echo formatHtmlCurrency($total_lucro); ?></td>
-                                <td class="text-center"><?php echo round($media_dias); ?> méd.</td>
+                                <td class="text-center col-optional"><?php echo round($media_dias); ?> méd.</td>
                                 <td></td>
-                                <td class="text-center"><?php echo (int)$total_recebiveis; ?></td>
+                                <td class="text-center col-optional"><?php echo (int)$total_recebiveis; ?></td>
                                 <td class="text-end"><?php echo formatHtmlCurrency($total_saldo); ?></td>
                                 <td colspan="2" class="text-center text-muted small"><?php echo count($operacoes); ?> operações</td>
                             </tr>
@@ -909,7 +727,6 @@ $current_filters = [
 
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function toggleCustomDates() {
             const sel = document.getElementById('filter_data');

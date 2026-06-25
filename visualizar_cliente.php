@@ -55,7 +55,7 @@ try {
             COALESCE(SUM(CASE WHEN data_operacao >= DATE_SUB(NOW(), INTERVAL 12 MONTH) THEN total_lucro_liquido_calc ELSE 0 END), 0) AS lucro_12m,
             MAX(data_operacao) AS ultima_data
         FROM operacoes
-        WHERE cliente_id = :cid
+        WHERE cedente_id = :cid
     ");
     $stmtKpi->bindValue(':cid', $clienteId, PDO::PARAM_INT);
     $stmtKpi->execute();
@@ -73,7 +73,7 @@ try {
     $stmtOps = $pdo->prepare("
         SELECT id, data_operacao, total_original_calc, total_liquido_pago_calc, tipo_operacao
         FROM operacoes
-        WHERE cliente_id = :cid
+        WHERE cedente_id = :cid
         ORDER BY data_operacao DESC, id DESC
         LIMIT 5
     ");
@@ -162,51 +162,18 @@ if (!empty($cliente['data_cadastro'])) {
 // Identificar representante atual entre os sócios
 $repNomeNorm = strtolower(trim(preg_replace('/\s+/', ' ', $cliente['representante_nome'] ?? '')));
 $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
+
+$pageTitle = ($cliente['empresa'] ?? 'Cliente') . ' · Visualizar Cliente';
+require_once 'head.php';
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($cliente['empresa'] ?? $pageTitle); ?> · Visualizar Cliente</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
+        /* Estilos específicos da página (tokens e componentes base vêm de theme.css) */
+        body { font-size: 0.95rem; }
+
         :root {
             --view-grad: linear-gradient(135deg, #0a8754 0%, #15b079 100%);
-            --profit: #198754;
-            --profit-soft: #d1f0dc;
-            --warn: #b76b00;
-            --warn-soft: #fff3d6;
-            --danger: #b02a37;
-            --danger-soft: #fde2e4;
-            --neutral: #6c757d;
-            --surface: #ffffff;
-            --surface-2: #f6f8fb;
-            --border: #e3e8ef;
         }
-        body { background: #eef2f7; font-size: 0.95rem; }
 
-        .page-toolbar {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 14px 18px;
-            margin-bottom: 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
-        .id-pill {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 4px 10px; border-radius: 999px;
-            background: #eef4ff; color: #0a4ea8;
-            font-size: 0.78rem; font-weight: 700;
-            margin-left: 6px;
-        }
         .status-badge {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 5px 12px; border-radius: 999px;
@@ -214,42 +181,8 @@ $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
             background: var(--profit-soft); color: #0f5132;
         }
 
-        .section-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            margin-bottom: 18px;
-            overflow: hidden;
-        }
-        .section-card .section-head {
-            display: flex; align-items: center; gap: 10px;
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            background: var(--surface-2);
-        }
-        .section-card .section-head .step-num {
-            width: 26px; height: 26px;
-            border-radius: 50%;
-            background: #0d6efd;
-            color: #fff;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-weight: 700; font-size: 0.85rem;
-            flex-shrink: 0;
-        }
-        .section-card .section-head h2 {
-            font-size: 0.95rem; font-weight: 600; margin: 0; flex: 1;
-        }
-        .section-card .section-head .head-meta {
-            font-size: 0.78rem; color: var(--neutral);
-        }
-        .section-card .section-body { padding: 18px; }
-
-        .section-card.s-people .section-head .step-num { background: #6f42c1; }
-        .section-card.s-rep    .section-head .step-num { background: #d63384; }
-        .section-card.s-addr   .section-head .step-num { background: #fd7e14; }
-        .section-card.s-bank   .section-head .step-num { background: #0a8754; }
-
-        /* Label/value styling — usa o grid do Bootstrap (row g-3 + col-md-X) igual ao form_cliente.php */
+        /* Label/value styling — esta tela usa o grid do Bootstrap (row g-3 + col-md-X),
+           fora de .info-cell, então mantém os estilos próprios. */
         .info-label {
             font-size: 0.72rem;
             text-transform: uppercase;
@@ -269,6 +202,12 @@ $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
         .info-value a { color: #0a58ca; text-decoration: none; }
         .info-value a:hover { text-decoration: underline; }
 
+        /* Dieta de cor: cabeçalhos de seção unificados na cor da marca. */
+        .section-card.s-people .section-head .step-num,
+        .section-card.s-rep    .section-head .step-num,
+        .section-card.s-addr   .section-head .step-num,
+        .section-card.s-bank   .section-head .step-num { background: #0d6efd; }
+
         .socio-view-card {
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -281,8 +220,8 @@ $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
         .socio-view-card .avatar {
             width: 44px; height: 44px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #6f42c1, #d63384);
-            color: #fff;
+            background: var(--app-info-soft);
+            color: var(--app-info);
             display: inline-flex; align-items: center; justify-content: center;
             font-weight: 700; flex-shrink: 0;
         }
@@ -292,27 +231,12 @@ $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
             display: inline-block;
             font-size: 0.7rem; font-weight: 600;
             padding: 2px 8px; border-radius: 999px;
-            background: #fce4ec; color: #d63384;
+            background: #eef0f3; color: #5a6470;
             margin-left: 6px;
         }
 
-        /* Sticky panel */
-        .sticky-panel {
-            position: sticky; top: 16px;
-            border-radius: 14px; overflow: hidden;
-            border: 1px solid var(--border);
-            background: #fff;
-        }
-        .sticky-panel .panel-head {
-            padding: 14px 18px;
-            display: flex; justify-content: space-between; align-items: center;
-            color: #fff;
-            background: var(--view-grad);
-        }
-        .sticky-panel .panel-head h3 {
-            font-size: 0.85rem; margin: 0; font-weight: 600;
-            text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.92;
-        }
+        /* Sticky panel — estrutura base vem de theme.css; aqui só o gradiente verde da tela */
+        .sticky-panel .panel-head { background: var(--view-grad); }
         .view-hero {
             background: var(--view-grad);
             color: #fff;
@@ -360,14 +284,6 @@ $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
         .contact-chip.email { background: #eef4ff; border-color: #c8dafc; color: #0a4ea8; }
         .contact-chip.tel   { background: #f3eeff; border-color: #ddd0f5; color: #5a32a3; }
 
-        .panel-actions {
-            padding: 14px 16px;
-            border-top: 1px solid var(--border);
-            display: flex; flex-direction: column; gap: 8px;
-            background: var(--surface);
-        }
-        .panel-actions .btn { font-weight: 600; }
-
         .info-tabs {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -400,9 +316,6 @@ $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
             .sticky-panel { position: static; }
         }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
 
     <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
 
@@ -427,9 +340,6 @@ $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
                 <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
                     <i class="bi bi-printer"></i> Imprimir
                 </button>
-                <a href="form_cliente.php?id=<?php echo (int)$cliente['id']; ?>" class="btn btn-warning">
-                    <i class="bi bi-pencil-square"></i> Editar Cliente
-                </a>
             </div>
         </div>
 
@@ -706,7 +616,7 @@ $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
 
                     <!-- KPIs -->
                     <div class="view-kpi-grid">
-                        <div class="view-kpi k-good">
+                        <div class="view-kpi">
                             <div class="k-label">Operações totais</div>
                             <div class="k-value"><?php echo $kpis['total_ops']; ?></div>
                         </div>
@@ -725,7 +635,7 @@ $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
                                 ?>
                             </div>
                         </div>
-                        <div class="view-kpi">
+                        <div class="view-kpi k-good">
                             <div class="k-label">Lucro 12 meses</div>
                             <div class="k-value"><?php echo moedaCompact($kpis['lucro_12m']); ?></div>
                         </div>
@@ -757,7 +667,7 @@ $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
                         <a href="simulacao.php?cliente_id=<?php echo (int)$cliente['id']; ?>" class="btn btn-primary">
                             <i class="bi bi-calculator-fill"></i> Nova Simulação
                         </a>
-                        <a href="form_cliente.php?id=<?php echo (int)$cliente['id']; ?>" class="btn btn-warning">
+                        <a href="form_cliente.php?id=<?php echo (int)$cliente['id']; ?>" class="btn btn-outline-warning">
                             <i class="bi bi-pencil-square"></i> Editar Cadastro
                         </a>
                         <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
@@ -812,7 +722,5 @@ $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
         </div>
 
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

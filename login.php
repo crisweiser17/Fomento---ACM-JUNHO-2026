@@ -32,28 +32,24 @@ if (isset($_GET['error'])) {
 $redirect_url = isset($_GET['redirect']) ? $_GET['redirect'] : 'index.php';
 
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Sistema</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<?php
+$pageTitle = 'Login';
+$bodyClass = 'login-page';
+$noMenu = true;
+require_once 'head.php';
+?>
     <style>
-        body {
+        body.login-page {
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background-color: #f8f9fa;
         }
         .login-card {
             max-width: 400px;
             width: 100%;
         }
     </style>
-</head>
-<body>
     <div class="card login-card shadow">
         <div class="card-body p-4">
             <h3 class="card-title text-center mb-4">Acesso Restrito</h3>
@@ -79,7 +75,5 @@ $redirect_url = isset($_GET['redirect']) ? $_GET['redirect'] : 'index.php';
             </form>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

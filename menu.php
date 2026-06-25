@@ -7,8 +7,8 @@ $menuAppConfig = [];
 if (file_exists($menuConfigFilePath)) {
     $menuAppConfig = json_decode(file_get_contents($menuConfigFilePath), true) ?: [];
 }
-$menuAppName = $menuAppConfig['app_name'] ?? 'Factoring';
-$menuAppVersion = $menuAppConfig['app_version'] ?? '5.2 de abril de 2026';
+$menuAppName = $menuAppConfig['app_name'] ?? 'FACTOR';
+$menuAppVersion = $menuAppConfig['app_version'] ?? '5.3 — 25 de junho de 2026';
 
 // Detecta qual página está sendo exibida
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -93,10 +93,9 @@ $menuItems = [
 ];
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-  <div class="container">
+  <div class="container-fluid px-3 px-md-4 app-shell-width">
     <a class="navbar-brand" href="kanban_leads.php">
-        <i class="bi bi-kanban-fill me-2"></i><?php echo htmlspecialchars($menuAppName); ?>
-        <small class="text-secondary ms-2" style="font-size: 0.7em;"><?php echo htmlspecialchars($menuAppVersion); ?></small>
+        <i class="bi bi-cash-coin me-2"></i><?php echo htmlspecialchars($menuAppName); ?>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -176,3 +175,10 @@ $menuItems = [
     </div>
   </div>
 </nav>
+
+<footer class="app-footer">
+  <div class="container-fluid px-3 px-md-4 app-shell-width d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-cash-coin me-1"></i><?php echo htmlspecialchars($menuAppName); ?></span>
+    <span>Atualizado em <?php echo htmlspecialchars($menuAppVersion); ?></span>
+  </div>
+</footer>

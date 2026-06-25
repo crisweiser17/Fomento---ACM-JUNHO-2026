@@ -1,6 +1,5 @@
 <?php
 require_once 'auth_check.php'; // Proteção de acesso
-require_once 'menu.php'; // Inclui o menu
 
 $configFilePath = __DIR__ . '/config.json';
 $message = '';
@@ -11,8 +10,8 @@ function readConfig($filePath) {
     if (!file_exists($filePath)) {
         // Criar arquivo padrão se não existir
         $defaultConfig = [
-            "app_name" => "Factoring",
-            "app_version" => "5.2 de abril de 2026",
+            "app_name" => "FACTOR",
+            "app_version" => "5.3 — 25 de junho de 2026",
             "default_taxa_mensal" => 5.00,
             "taxa_juros_atraso" => 1.00,
             "taxa_multa_atraso" => 2.00,
@@ -33,8 +32,8 @@ function readConfig($filePath) {
     $config = json_decode($configContent, true);
 
     // Garantir que os campos de email existam mesmo em configs antigas
-    if (!isset($config['app_name'])) $config['app_name'] = 'Factoring';
-    if (!isset($config['app_version'])) $config['app_version'] = '5.2 de abril de 2026';
+    if (!isset($config['app_name'])) $config['app_name'] = 'FACTOR';
+    if (!isset($config['app_version'])) $config['app_version'] = '5.3 — 25 de junho de 2026';
     if (!isset($config['resend_api_key'])) $config['resend_api_key'] = '';
     if (!isset($config['taxa_juros_atraso'])) $config['taxa_juros_atraso'] = 1.00;
     if (!isset($config['taxa_multa_atraso'])) $config['taxa_multa_atraso'] = 2.00;
@@ -68,8 +67,8 @@ function readConfig($filePath) {
 
 // Lidar com o envio do formulário de configurações gerais
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_config') {
-    $newAppName = $_POST['app_name'] ?? 'Factoring';
-    $newAppVersion = '5.2 de abril de 2026';
+    $newAppName = $_POST['app_name'] ?? 'FACTOR';
+    $newAppVersion = '5.3 — 25 de junho de 2026';
     $newDefaultTaxaMensal = isset($_POST['default_taxa_mensal']) ? (float)$_POST['default_taxa_mensal'] : null;
     $newTaxaJurosAtraso = isset($_POST['taxa_juros_atraso']) ? (float)$_POST['taxa_juros_atraso'] : null;
     $newTaxaMultaAtraso = isset($_POST['taxa_multa_atraso']) ? (float)$_POST['taxa_multa_atraso'] : null;
@@ -249,61 +248,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 $currentConfig = readConfig($configFilePath);
 ?>
 
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurações do Sistema</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- Quill.js CSS -->
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<?php
+$pageTitle = 'Configurações';
+$headExtra = '<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">';
+require_once 'head.php';
+?>
     <style>
-        :root {
-            --profit: #198754; --profit-soft: #d1f0dc;
-            --warn: #b76b00; --warn-soft: #fff3d6;
-            --danger: #b02a37; --danger-soft: #fde2e4;
-            --info: #0a4ea8; --info-soft: #eef4ff;
-            --neutral: #6c757d;
-            --surface: #ffffff; --surface-2: #f6f8fb;
-            --border: #e3e8ef;
-        }
-        body { background: #eef2f7; font-size: 0.95rem; padding-bottom: 80px; }
+        /* Estilos específicos da página de Configurações (tokens, body, .page-toolbar e .section-card base vêm de theme.css) */
+        body { font-size: 0.95rem; padding-bottom: 80px; }
 
-        .page-toolbar {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px 18px; margin-bottom: 18px;
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 12px;
-        }
-        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
-
-        .section-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 14px; margin-bottom: 18px; overflow: hidden;
-        }
-        .section-card .section-head {
-            display: flex; align-items: center; gap: 10px;
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            background: var(--surface-2);
-        }
-        .section-card .section-head .step-num {
-            width: 26px; height: 26px; border-radius: 50%;
-            background: #0d6efd; color: #fff;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
-        }
-        .section-card .section-head h2 { font-size: 0.95rem; font-weight: 600; margin: 0; flex: 1; }
-        .section-card .section-head .head-meta { font-size: 0.78rem; color: var(--neutral); }
-        .section-card .section-body { padding: 18px; }
-
-        .section-card.s-rates  .section-head .step-num { background: #0d6efd; }
-        .section-card.s-empresa .section-head .step-num { background: #fd7e14; }
-        .section-card.s-bank   .section-head .step-num { background: #0a8754; }
-        .section-card.s-email  .section-head .step-num { background: #6f42c1; }
-        .section-card.s-template .section-head .step-num { background: #d63384; }
+        /* Dieta de cor: cabeçalhos de seção unificados na cor da marca. */
+        .section-card.s-rates  .section-head .step-num,
+        .section-card.s-empresa .section-head .step-num,
+        .section-card.s-bank   .section-head .step-num,
+        .section-card.s-email  .section-head .step-num,
+        .section-card.s-template .section-head .step-num { background: #0d6efd; }
 
         .section-card.s-danger { border-color: #f1c8cd; }
         .section-card.s-danger .section-head {
@@ -359,9 +318,6 @@ $currentConfig = readConfig($configFilePath);
         }
         .danger-warning strong { color: var(--danger); }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
 
     <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1200px;">
 
@@ -395,11 +351,11 @@ $currentConfig = readConfig($configFilePath);
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label for="app_name" class="form-label">Nome do Aplicativo</label>
-                            <input type="text" class="form-control" id="app_name" name="app_name" value="<?php echo htmlspecialchars($currentConfig['app_name'] ?? 'Factoring'); ?>" required>
+                            <input type="text" class="form-control" id="app_name" name="app_name" value="<?php echo htmlspecialchars($currentConfig['app_name'] ?? 'FACTOR'); ?>" required>
                         </div>
                         <div class="col-md-6">
                             <label for="app_version" class="form-label">Versão</label>
-                            <input type="text" class="form-control" id="app_version" name="app_version" value="<?php echo htmlspecialchars($currentConfig['app_version'] ?? '5.2 de abril de 2026'); ?>" readonly>
+                            <input type="text" class="form-control" id="app_version" name="app_version" value="<?php echo htmlspecialchars($currentConfig['app_version'] ?? '5.3 — 25 de junho de 2026'); ?>" readonly>
                         </div>
                     </div>
 
@@ -721,9 +677,8 @@ $currentConfig = readConfig($configFilePath);
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Quill.js JS -->
-    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js" defer></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Inicializar Quill editor

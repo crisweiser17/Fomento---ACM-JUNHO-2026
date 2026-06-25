@@ -1,34 +1,27 @@
 <?php
 require_once 'auth_check.php';
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fechamento Mensal</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<?php
+$pageTitle = 'Fechamento Mensal';
+$withChart = true;
+require_once 'head.php';
+?>
     <style>
+        /* Estilos específicos da página (tokens e componentes base vêm de theme.css) */
         .summary-card { border-left: 4px solid; border-radius: 8px; }
         .border-recebido { border-color: #0d6efd; }
         .border-capital { border-color: #6c757d; }
-        .border-bruto { border-color: #ffc107; }
-        .border-despesas { border-color: #dc3545; }
-        .border-liquido { border-color: #198754; }
-        .border-distribuido { border-color: #6610f2; }
-        .border-retido { border-color: #0dcaf0; }
+        /* Dieta de cor: bordas dos cards no padrão (verde=lucro, vermelho=despesa,
+           neutro=repartições). */
+        .border-bruto { border-color: var(--app-profit); }
+        .border-despesas { border-color: var(--app-danger); }
+        .border-liquido { border-color: var(--app-profit); }
+        .border-distribuido { border-color: var(--app-neutral); }
+        .border-retido { border-color: var(--app-neutral); }
         .scroll-list { max-height: 260px; overflow-y: auto; }
         .scroll-list thead th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 1; }
         .totals-row { background-color: #f8f9fa; border-top: 2px solid #dee2e6; }
     </style>
-</head>
-<body class="bg-light">
-
-<?php include 'menu.php'; ?>
 
 <div class="container mb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -80,7 +73,7 @@ require_once 'auth_check.php';
             <div class="card shadow-sm summary-card border-bruto">
                 <div class="card-body">
                     <h6 class="text-muted mb-1">Lucro Bruto</h6>
-                    <h3 class="mb-0" id="cardLucroBruto">R$ 0,00</h3>
+                    <h3 class="mb-0 text-success" id="cardLucroBruto">R$ 0,00</h3>
                 </div>
             </div>
         </div>
@@ -109,7 +102,7 @@ require_once 'auth_check.php';
             <div class="card shadow-sm summary-card border-distribuido">
                 <div class="card-body">
                     <h6 class="text-muted mb-1">Distribuído aos Sócios</h6>
-                    <h3 class="mb-0" style="color:#6610f2" id="cardDistribuido">R$ 0,00</h3>
+                    <h3 class="mb-0" id="cardDistribuido">R$ 0,00</h3>
                 </div>
             </div>
         </div>
@@ -117,7 +110,7 @@ require_once 'auth_check.php';
             <div class="card shadow-sm summary-card border-retido">
                 <div class="card-body">
                     <h6 class="text-muted mb-1">Lucro Retido</h6>
-                    <h3 class="mb-0" style="color:#0dcaf0" id="cardLucroRetido">R$ 0,00</h3>
+                    <h3 class="mb-0" id="cardLucroRetido">R$ 0,00</h3>
                     <small class="text-muted">Líquido − Distribuído</small>
                 </div>
             </div>
@@ -309,8 +302,8 @@ require_once 'auth_check.php';
 </div>
 
 <!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
 let composicaoChart = null;
 let lucroDespesasChart = null;
 
@@ -607,8 +600,9 @@ async function excluirDistribuicao(id) {
 }
 
 // Carregar dados iniciais
-document.addEventListener('DOMContentLoaded', carregarDados);
+carregarDados();
 
+});
 </script>
 </body>
 </html>

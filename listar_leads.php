@@ -1,6 +1,7 @@
 <?php require_once 'auth_check.php'; ?>
 <?php
 require_once 'db_connection.php';
+require_once 'ui_helpers.php';
 
 $results_per_page = 25;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
@@ -214,132 +215,27 @@ function getSortLink($column, $text, $currentSort, $currentDir, $params) {
 
 $baseParams = ['search' => $search, 'sort' => $sort, 'dir' => $dir, 'quick' => $quick];
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leads</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<?php
+$pageTitle = 'Leads';
+require_once 'head.php';
+?>
     <style>
-        :root {
-            --profit: #198754; --profit-soft: #d1f0dc;
-            --warn: #b76b00; --warn-soft: #fff3d6;
-            --danger: #b02a37; --danger-soft: #fde2e4;
-            --info: #0a4ea8; --info-soft: #eef4ff;
-            --neutral: #6c757d;
-            --surface: #ffffff; --surface-2: #f6f8fb;
-            --border: #e3e8ef;
-        }
-        body { background: #eef2f7; font-size: 0.95rem; }
-
-        .page-toolbar {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px 18px; margin-bottom: 18px;
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 12px;
-        }
-        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
-        .id-pill {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 4px 10px; border-radius: 999px;
-            background: var(--info-soft); color: var(--info);
-            font-size: 0.78rem; font-weight: 700; margin-left: 6px;
-        }
+        /* Estilos específicos da lista de leads (tokens e componentes vêm de theme.css) */
+        body { font-size: 0.95rem; }
 
         .view-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
         .view-toggle a { padding: 6px 12px; font-size: 0.85rem; color: var(--neutral); text-decoration: none; background: var(--surface); border-right: 1px solid var(--border); }
         .view-toggle a:last-child { border-right: none; }
         .view-toggle a.active { background: var(--info); color: #fff; }
 
-        .filter-bar {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 10px 14px; margin-bottom: 18px;
-            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-        }
-        .filter-label { font-size: 0.74rem; color: var(--neutral); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-right: 4px; }
-        .filter-chip {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 5px 12px; border-radius: 999px;
-            background: var(--surface-2); color: var(--neutral);
-            font-size: 0.82rem; font-weight: 600;
-            border: 1px solid var(--border); text-decoration: none;
-        }
-        .filter-chip:hover { background: #e9ecef; color: #212529; }
-        .filter-chip.active { background: var(--info-soft); color: var(--info); border-color: #c8dafc; }
-        .filter-chip.active.f-green  { background: var(--profit-soft); color: var(--profit); border-color: #b3e3c4; }
-        .filter-chip.active.f-warn   { background: var(--warn-soft); color: var(--warn); border-color: #f1d999; }
-        .filter-chip.active.f-danger { background: var(--danger-soft); color: var(--danger); border-color: #f5b7be; }
-
-        .data-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-        .data-table-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
-        .data-table-head h3 { margin: 0; font-size: 0.95rem; font-weight: 600; }
-        .data-table-head .meta { font-size: 0.78rem; color: var(--neutral); }
-        .data-table { width: 100%; margin-bottom: 0; font-size: 0.9rem; }
-        .data-table thead th { background: var(--surface-2); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--neutral); font-weight: 700; border-bottom: 1px solid var(--border); border-top: none; padding: 10px 12px; white-space: nowrap; }
-        .data-table thead th a { color: inherit; text-decoration: none; }
-        .data-table thead th a:hover { color: var(--info); }
-        .data-table tbody td { padding: 12px; vertical-align: middle; border-top: 1px solid var(--border); }
-        .data-table tbody tr:hover { background: #fafbfd; }
-
-        .client-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
-        .client-cell .avatar { width: 34px; height: 34px; border-radius: 50%; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; flex-shrink: 0; background: linear-gradient(135deg, #6f42c1, #d63384); }
-        .client-cell .avatar.b1 { background: linear-gradient(135deg, #0d6efd, #15b079); }
-        .client-cell .avatar.b2 { background: linear-gradient(135deg, #fd7e14, #b76b00); }
-        .client-cell .avatar.b3 { background: linear-gradient(135deg, #0a8754, #15b079); }
-        .client-cell .avatar.b4 { background: linear-gradient(135deg, #d63384, #b02a37); }
-        .client-cell .text { min-width: 0; }
-        .client-cell .name { font-weight: 600; font-size: 0.92rem; line-height: 1.2; }
-        .client-cell .doc { font-size: 0.76rem; color: var(--neutral); }
-
-        .status-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
-        .status-pill.s-novo       { background: var(--info-soft); color: var(--info); }
-        .status-pill.s-agendada   { background: #fff3d6; color: var(--warn); }
-        .status-pill.s-feita      { background: #efe8fa; color: #6f42c1; }
-        .status-pill.s-aprovado   { background: var(--profit-soft); color: var(--profit); }
-        .status-pill.s-perdido    { background: var(--danger-soft); color: var(--danger); }
-        .status-pill.s-convertido { background: #d4edda; color: #0a5c2a; border: 1px solid #b3e3c4; }
-
         .origem-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; }
         .origem-pill.o-receptivo { background: var(--info-soft); color: var(--info); }
         .origem-pill.o-ativo     { background: #efe8fa; color: #6f42c1; }
 
-        .row-actions { display: inline-flex; gap: 0; }
-        .row-actions .btn-ico { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--neutral); background: transparent; border: 1px solid transparent; text-decoration: none; transition: background 0.15s; }
-        .row-actions .btn-ico:hover { background: var(--surface-2); border-color: var(--border); color: var(--info); }
-        .row-actions .btn-ico.danger:hover { color: var(--danger); }
-        .row-actions .btn-ico.success:hover { color: var(--profit); }
-
-        .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border); background: var(--surface-2); flex-wrap: wrap; gap: 10px; }
-        .pagination-bar .info { font-size: 0.82rem; color: var(--neutral); }
-        .pagination-bar .pagination { margin: 0; }
-        .pagination-bar .page-link { padding: 4px 10px; font-size: 0.82rem; color: var(--info); border-color: var(--border); }
-        .pagination-bar .page-item.active .page-link { background: var(--info); border-color: var(--info); color: #fff; }
-
-        .empty-state { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 60px 20px; text-align: center; color: var(--neutral); }
-        .empty-state i { font-size: 3.5rem; opacity: 0.4; }
         .motivo-perda { font-size: 0.78rem; color: var(--danger); margin-top: 4px; }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
 
     <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
-
-        <?php if (isset($_GET['status'])): ?>
-            <?php if ($_GET['status'] === 'success'): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle-fill"></i> <?php echo htmlspecialchars($_GET['msg'] ?? 'Operação realizada.'); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php elseif ($_GET['status'] === 'error'): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill"></i> <?php echo htmlspecialchars($_GET['msg'] ?? 'Erro.'); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
-        <?php endif; ?>
 
         <div class="page-toolbar">
             <div>
@@ -456,18 +352,16 @@ $baseParams = ['search' => $search, 'sort' => $sort, 'dir' => $dir, 'quick' => $
         </div>
 
         <?php if (empty($leads)): ?>
-            <div class="empty-state">
-                <i class="bi bi-funnel"></i>
-                <h4 class="mt-3 text-muted">Nenhum lead encontrado</h4>
-                <p class="mb-3">
-                    <?php if ($search !== ''): ?>
-                        Não encontramos leads para "<strong><?php echo htmlspecialchars($search); ?></strong>".
-                    <?php else: ?>
-                        Cadastre seu primeiro lead ou ajuste os filtros.
-                    <?php endif; ?>
-                </p>
-                <a href="form_lead.php" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Novo Lead</a>
-            </div>
+            <?php
+            $emptyMsg = $search !== ''
+                ? 'Não encontramos leads para "' . $search . '".'
+                : 'Cadastre seu primeiro lead ou ajuste os filtros.';
+            echo ui_empty_state('bi-funnel', 'Nenhum lead encontrado', $emptyMsg, [
+                'label' => 'Novo Lead',
+                'href'  => 'form_lead.php',
+                'icon'  => 'bi-plus-lg',
+            ]);
+            ?>
         <?php else: ?>
             <div class="data-table-wrap">
                 <div class="data-table-head">
@@ -530,7 +424,7 @@ $baseParams = ['search' => $search, 'sort' => $sort, 'dir' => $dir, 'quick' => $
                                                     <i class="bi bi-x-circle"></i>
                                                 </button>
                                             <?php endif; ?>
-                                            <a href="excluir_lead.php?id=<?php echo (int)$lead['id']; ?>" class="btn-ico danger" title="Excluir definitivamente" onclick="return confirm('Excluir definitivamente este lead? Essa ação não pode ser desfeita.');"><i class="bi bi-trash3-fill"></i></a>
+                                            <a href="excluir_lead.php?id=<?php echo (int)$lead['id']; ?>" class="btn-ico danger" title="Excluir definitivamente" data-confirm="Tem certeza? Esta ação não pode ser desfeita."><i class="bi bi-trash3-fill"></i></a>
                                         </div>
                                     </td>
                                 </tr>
@@ -599,13 +493,14 @@ $baseParams = ['search' => $search, 'sort' => $sort, 'dir' => $dir, 'quick' => $
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.querySelectorAll('.btn-arquivar').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.getElementById('arquivarId').value = btn.dataset.id;
-                document.getElementById('arquivarEmpresa').textContent = btn.dataset.empresa;
-                new bootstrap.Modal(document.getElementById('modalArquivar')).show();
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.btn-arquivar').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.getElementById('arquivarId').value = btn.dataset.id;
+                    document.getElementById('arquivarEmpresa').textContent = btn.dataset.empresa;
+                    new bootstrap.Modal(document.getElementById('modalArquivar')).show();
+                });
             });
         });
     </script>

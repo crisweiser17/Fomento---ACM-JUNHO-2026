@@ -276,6 +276,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['atualizar'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Atualização de Banco de Dados</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="theme.css">
 </head>
 <body class="bg-light">
     <div class="container mt-5">

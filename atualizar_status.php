@@ -11,11 +11,12 @@ require_once 'functions.php';
 // --- Funções de Formatação e Estilo (Incluídas diretamente) ---
 if (!function_exists('formatHtmlStatus')) {
     function formatHtmlStatus($status, $data_recebimento = null) {
-        $badgeClass = 'bg-secondary'; $tooltip = '';
+        // Pills suaves (mesmo esquema da listagem): verde = recebido, vermelho = problema, resto neutro.
+        $badgeClass = 's-neutro'; $tooltip = '';
         switch ($status) {
-            case 'Em Aberto': $badgeClass = 'bg-info text-dark'; $tooltip = 'Aguardando ação ou recebimento'; break;
+            case 'Em Aberto': $badgeClass = 's-neutro'; $tooltip = 'Aguardando ação ou recebimento'; break;
             case 'Recebido':
-                $badgeClass = 'bg-success';
+                $badgeClass = 's-recebido';
                 $tooltip = 'Recebimento confirmado';
                 // Se tiver data de recebimento, incluir no tooltip
                 if (!empty($data_recebimento)) {
@@ -33,14 +34,14 @@ if (!function_exists('formatHtmlStatus')) {
                     $tooltip .= ' em ' . $dataFormatada;
                 }
                 break;
-            case 'Parcialmente Compensado': $badgeClass = 'bg-warning text-dark'; $tooltip = 'Parcialmente compensado'; break;
-            case 'Problema': $badgeClass = 'bg-danger'; $tooltip = 'Problema no recebimento'; break;
+            case 'Parcialmente Compensado': $badgeClass = 's-neutro'; $tooltip = 'Parcialmente compensado'; break;
+            case 'Problema': $badgeClass = 's-problema'; $tooltip = 'Problema no recebimento'; break;
         }
         
         // Se for "Recebido" e tiver data, usar tooltip customizado
         if ($status === 'Recebido' && !empty($data_recebimento)) {
             return '<div class="tooltip-wrapper" style="position: relative; display: inline-block;">
-                        <span class="badge ' . $badgeClass . '">' . htmlspecialchars($status) . '</span>
+                        <span class="status-pill ' . $badgeClass . '">' . htmlspecialchars($status) . '</span>
                         <span class="tooltip-text" style="visibility: hidden; width: auto; min-width: 220px; max-width: 300px; background-color: #000 !important; color: #fff !important; text-align: center; border-radius: 6px; padding: 10px 15px; position: absolute; z-index: 1000; bottom: 125%; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.2s; font-size: 0.75rem; white-space: normal; box-shadow: 0 2px 8px rgba(0,0,0,0.5); border: 1px solid #333;">' . htmlspecialchars($tooltip) . '</span>
                     </div>
                     <style>
@@ -50,25 +51,13 @@ if (!function_exists('formatHtmlStatus')) {
         }
         
         // Para outros casos, usar tooltip padrão
-        return '<span class="badge ' . $badgeClass . '" title="' . htmlspecialchars($tooltip) . '">' . htmlspecialchars($status) . '</span>';
+        return '<span class="status-pill ' . $badgeClass . '" title="' . htmlspecialchars($tooltip) . '">' . htmlspecialchars($status) . '</span>';
     }
 }
 if (!function_exists('getTableRowClass')) {
      function getTableRowClass($status, $data_vencimento = null) {
-        if ($data_vencimento && !in_array($status, ['Recebido', 'Compensado', 'Totalmente Compensado'])) {
-            $hoje = date('Y-m-d');
-            if ($data_vencimento < $hoje) {
-                return 'table-danger fw-bold';
-            }
-        }
-        switch ($status) {
-            case 'Recebido': return 'table-light text-muted opacity-75';
-            case 'Problema': return 'table-danger fw-bold';
-            case 'Compensado': return 'table-warning text-muted opacity-75';
-            case 'Totalmente Compensado': return 'table-warning text-muted opacity-75';
-            case 'Parcialmente Compensado': return 'table-primary';
-            case 'Em Aberto': default: return '';
-        }
+        // Sem cor de fundo por status: as linhas usam zebra; urgência/estado vão em pills.
+        return '';
     }
 }
 // --- Fim das Funções ---

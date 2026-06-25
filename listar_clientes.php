@@ -1,5 +1,6 @@
 <?php require_once 'auth_check.php'; ?><?php
 require_once 'db_connection.php';
+require_once 'ui_helpers.php';
 
 // --- Configurações de Paginação, Ordenação e Busca ---
 $results_per_page = 15;
@@ -205,206 +206,36 @@ function getSortLink($column, $text, $currentSort, $currentDir, $params) {
 
 $baseParams = ['search' => $search, 'sort' => $sort, 'dir' => $dir, 'quick' => $quick];
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clientes</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<?php
+$pageTitle = 'Clientes';
+require_once 'head.php';
+?>
     <style>
-        :root {
-            --profit: #198754; --profit-soft: #d1f0dc;
-            --warn: #b76b00; --warn-soft: #fff3d6;
-            --danger: #b02a37;
-            --info: #0a4ea8; --info-soft: #eef4ff;
-            --neutral: #6c757d;
-            --surface: #ffffff; --surface-2: #f6f8fb;
-            --border: #e3e8ef;
-        }
-        body { background: #eef2f7; font-size: 0.95rem; }
+        /* Estilos específicos da página (tokens e componentes base vêm de theme.css) */
+        body { font-size: 0.95rem; }
 
-        .page-toolbar {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px 18px; margin-bottom: 18px;
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 12px;
-        }
-        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
-        .id-pill {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 4px 10px; border-radius: 999px;
-            background: var(--info-soft); color: var(--info);
-            font-size: 0.78rem; font-weight: 700; margin-left: 6px;
-        }
-
-        .kpi-strip {
-            display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 12px; margin-bottom: 18px;
-        }
-        @media (max-width: 992px) { .kpi-strip { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 576px) { .kpi-strip { grid-template-columns: 1fr; } }
-        .kpi-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px 16px;
-        }
-        .kpi-card .k-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 1.1rem; margin-bottom: 6px;
-        }
-        .k-icon.b-blue   { background: var(--info-soft); color: var(--info); }
-        .k-icon.b-green  { background: var(--profit-soft); color: var(--profit); }
-        .k-icon.b-warn   { background: var(--warn-soft); color: var(--warn); }
-        .k-icon.b-purple { background: #efe8fa; color: #6f42c1; }
-        .kpi-card .k-label {
-            font-size: 0.72rem; color: var(--neutral);
-            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
-        }
-        .kpi-card .k-value { font-size: 1.4rem; font-weight: 700; line-height: 1.1; margin-top: 2px; }
-        .kpi-card .k-trend { font-size: 0.78rem; color: var(--neutral); margin-top: 4px; }
-
-        .filter-bar {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 10px 14px; margin-bottom: 18px;
-            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-        }
-        .filter-label {
-            font-size: 0.74rem; color: var(--neutral);
-            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
-            margin-right: 4px;
-        }
-        .filter-chip {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 5px 12px; border-radius: 999px;
-            background: var(--surface-2); color: var(--neutral);
-            font-size: 0.82rem; font-weight: 600;
-            border: 1px solid var(--border);
-            text-decoration: none;
-        }
-        .filter-chip:hover { background: #e9ecef; color: #212529; }
+        /* Variantes de cor dos filtros rápidos (esta página usa .active) */
         .filter-chip.active {
             background: var(--info-soft); color: var(--info); border-color: #c8dafc;
         }
         .filter-chip.active.f-green { background: var(--profit-soft); color: var(--profit); border-color: #b3e3c4; }
         .filter-chip.active.f-warn  { background: var(--warn-soft); color: var(--warn); border-color: #f1d999; }
 
-        .data-table-wrap {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 14px; overflow: hidden;
-        }
-        .data-table-head {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            background: var(--surface-2);
-        }
-        .data-table-head h3 { margin: 0; font-size: 0.95rem; font-weight: 600; }
-        .data-table-head .meta { font-size: 0.78rem; color: var(--neutral); }
-        .data-table { width: 100%; margin-bottom: 0; font-size: 0.9rem; }
-        .data-table thead th {
-            background: var(--surface-2);
-            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em;
-            color: var(--neutral); font-weight: 700;
-            border-bottom: 1px solid var(--border); border-top: none;
-            padding: 10px 12px; white-space: nowrap;
-        }
-        .data-table thead th a { color: inherit; text-decoration: none; }
-        .data-table thead th a:hover { color: var(--info); }
-        .data-table tbody td {
-            padding: 12px; vertical-align: middle;
-            border-top: 1px solid var(--border);
-        }
-        .data-table tbody td.nowrap { white-space: nowrap; }
-        .data-table tbody tr:hover { background: #fafbfd; }
-        .data-table .num { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
-
-        .client-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
-        .client-cell .avatar {
-            width: 34px; height: 34px; border-radius: 50%;
-            color: #fff; display: inline-flex; align-items: center; justify-content: center;
-            font-weight: 700; font-size: 0.8rem; flex-shrink: 0;
-            background: linear-gradient(135deg, #6f42c1, #d63384);
-        }
-        .client-cell .avatar.b1 { background: linear-gradient(135deg, #0d6efd, #15b079); }
-        .client-cell .avatar.b2 { background: linear-gradient(135deg, #fd7e14, #b76b00); }
-        .client-cell .avatar.b3 { background: linear-gradient(135deg, #0a8754, #15b079); }
-        .client-cell .avatar.b4 { background: linear-gradient(135deg, #d63384, #b02a37); }
-        .client-cell .text { min-width: 0; }
-        .client-cell .name { font-weight: 600; font-size: 0.92rem; line-height: 1.2; }
-        .client-cell .doc  { font-size: 0.76rem; color: var(--neutral); white-space: nowrap; }
-
-        .row-actions { display: inline-flex; gap: 0; }
-        .row-actions .btn-ico {
-            width: 28px; height: 28px;
-            display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 6px; color: var(--neutral); background: transparent;
-            border: 1px solid transparent; text-decoration: none; transition: background 0.15s;
-        }
-        .row-actions .btn-ico:hover { background: var(--surface-2); border-color: var(--border); color: var(--info); }
-        .row-actions .btn-ico.danger:hover { color: var(--danger); }
-
+        /* Coluna de contatos empilhados */
         .contact-stack { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-        .mini-contact {
-            display: inline-flex; align-items: center; gap: 6px;
-            font-size: 0.78rem; color: var(--neutral);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            max-width: 100%;
-        }
-        .mini-contact i { font-size: 0.85rem; flex-shrink: 0; }
-        .mini-contact a { color: var(--neutral); text-decoration: none; overflow: hidden; text-overflow: ellipsis; }
-        .mini-contact a:hover { color: var(--info); }
+        .mini-contact { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+        .mini-contact i { flex-shrink: 0; }
+        .mini-contact a { overflow: hidden; text-overflow: ellipsis; }
 
-        .pagination-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 18px;
-            border-top: 1px solid var(--border);
-            background: var(--surface-2);
-            flex-wrap: wrap; gap: 10px;
-        }
-        .pagination-bar .info { font-size: 0.82rem; color: var(--neutral); }
-        .pagination-bar .pagination { margin: 0; }
-        .pagination-bar .page-link {
-            padding: 4px 10px; font-size: 0.82rem;
-            color: var(--info); border-color: var(--border);
-        }
-        .pagination-bar .page-item.active .page-link {
-            background: var(--info); border-color: var(--info); color: #fff;
-        }
-
-        .empty-state {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 14px; padding: 60px 20px;
-            text-align: center; color: var(--neutral);
-        }
-        .empty-state i { font-size: 3.5rem; opacity: 0.4; }
+        /* Ajustes finos específicos da tabela de clientes */
+        .data-table tbody td.nowrap { white-space: nowrap; }
+        .data-table .num { white-space: nowrap; }
+        .client-cell { min-width: 0; }
+        .client-cell .text { min-width: 0; }
+        .client-cell .doc { white-space: nowrap; }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
 
     <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
-
-        <?php if (isset($_GET['status'])): ?>
-            <?php if ($_GET['status'] == 'success'): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle-fill"></i> Cliente salvo com sucesso!
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            <?php elseif ($_GET['status'] == 'deleted'): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle-fill"></i> Cliente excluído com sucesso!
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            <?php elseif ($_GET['status'] == 'error'): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill"></i>
-                    <?php echo htmlspecialchars($_GET['msg'] ?? 'Erro desconhecido.'); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            <?php endif; ?>
-        <?php endif; ?>
 
         <!-- Toolbar -->
         <div class="page-toolbar">
@@ -465,7 +296,7 @@ $baseParams = ['search' => $search, 'sort' => $sort, 'dir' => $dir, 'quick' => $
                 <div class="k-trend">sem operação há 6+ meses</div>
             </div>
             <div class="kpi-card">
-                <div class="k-icon b-purple"><i class="bi bi-cash-stack"></i></div>
+                <div class="k-icon b-blue"><i class="bi bi-cash-stack"></i></div>
                 <div class="k-label">Volume 12 meses</div>
                 <div class="k-value"><?php echo moedaCompact($kpis['volume_12m']); ?></div>
                 <div class="k-trend">total nominal</div>
@@ -504,24 +335,23 @@ $baseParams = ['search' => $search, 'sort' => $sort, 'dir' => $dir, 'quick' => $
 
         <!-- Tabela -->
         <?php if (empty($clientes)): ?>
-            <div class="empty-state">
-                <i class="bi bi-people"></i>
-                <h4 class="mt-3 text-muted"><?php echo $search !== '' || $quick !== 'todos' ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'; ?></h4>
-                <p class="mb-3">
-                    <?php if ($search !== ''): ?>
-                        Não encontramos clientes para a busca "<strong><?php echo htmlspecialchars($search); ?></strong>".
-                    <?php elseif ($quick !== 'todos'): ?>
-                        Tente outro filtro rápido ou limpe os filtros.
-                    <?php else: ?>
-                        Comece adicionando seu primeiro cliente.
-                    <?php endif; ?>
-                </p>
-                <?php if ($search !== '' || $quick !== 'todos'): ?>
-                    <a href="listar_clientes.php" class="btn btn-outline-primary"><i class="bi bi-x-circle"></i> Limpar filtros</a>
-                <?php else: ?>
-                    <a href="form_cliente.php" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Novo Cliente</a>
-                <?php endif; ?>
-            </div>
+            <?php
+            $isFiltered = $search !== '' || $quick !== 'todos';
+            if ($search !== '') {
+                $emptyTitulo = 'Nenhum cliente encontrado';
+                $emptyMsg = 'Não encontramos clientes para a busca "' . $search . '".';
+            } elseif ($quick !== 'todos') {
+                $emptyTitulo = 'Nenhum cliente encontrado';
+                $emptyMsg = 'Tente outro filtro rápido ou limpe os filtros.';
+            } else {
+                $emptyTitulo = 'Nenhum cliente cadastrado';
+                $emptyMsg = 'Comece adicionando seu primeiro cliente.';
+            }
+            $emptyCta = $isFiltered
+                ? ['label' => 'Limpar filtros', 'href' => 'listar_clientes.php', 'icon' => 'bi-x-circle']
+                : ['label' => 'Novo Cliente', 'href' => 'form_cliente.php', 'icon' => 'bi-plus-lg'];
+            echo ui_empty_state('bi-people', $emptyTitulo, $emptyMsg, $emptyCta);
+            ?>
         <?php else: ?>
             <div class="data-table-wrap">
                 <div class="data-table-head">
@@ -604,7 +434,7 @@ $baseParams = ['search' => $search, 'sort' => $sort, 'dir' => $dir, 'quick' => $
                                             <a href="visualizar_cliente.php?id=<?php echo $cliente['id']; ?>" class="btn-ico" title="Visualizar"><i class="bi bi-eye-fill"></i></a>
                                             <a href="form_cliente.php?id=<?php echo $cliente['id']; ?>" class="btn-ico" title="Editar"><i class="bi bi-pencil-square"></i></a>
                                             <a href="simulacao.php?cliente_id=<?php echo $cliente['id']; ?>" class="btn-ico" title="Nova simulação"><i class="bi bi-calculator-fill"></i></a>
-                                            <a href="excluir_cliente.php?id=<?php echo $cliente['id']; ?>" class="btn-ico danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este cliente? Operações associadas a ele podem ficar sem referência.');"><i class="bi bi-trash3-fill"></i></a>
+                                            <a href="excluir_cliente.php?id=<?php echo $cliente['id']; ?>" class="btn-ico danger" title="Excluir" data-confirm="Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita."><i class="bi bi-trash3-fill"></i></a>
                                         </div>
                                     </td>
                                 </tr>
@@ -659,7 +489,5 @@ $baseParams = ['search' => $search, 'sort' => $sort, 'dir' => $dir, 'quick' => $
         <?php endif; ?>
 
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

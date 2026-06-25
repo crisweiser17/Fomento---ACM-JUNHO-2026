@@ -11,10 +11,11 @@ body {
     margin-bottom: 30px; /* Space at the bottom */
 }
 
-/* Navbar usa .container só para alinhar ao max-width — sem estilo de "card" */
-.navbar .container {
+/* Navbar e footer usam .container-fluid + .app-shell-width (theme.css) para
+   acompanhar a largura do conteúdo. Mantém aqui só a anulação do estilo "card"
+   caso algum container-fluid herde fundo branco. */
+.navbar .container-fluid {
     background: transparent;
-    padding: 0.5rem 1rem;
     box-shadow: none;
     border-radius: 0;
     margin-bottom: 0;
@@ -46,10 +47,10 @@ body {
     font-weight: bold;
 }
 .value.profit {
-    color: #198754; /* Bootstrap success green */
+    color: var(--app-profit, #198754); /* verde — token único */
 }
 .value.loss {
-    color: #dc3545; /* Bootstrap danger red */
+    color: var(--app-danger, #b02a37); /* vermelho — token único (era #dc3545) */
 }
 
 .remove-row-btn {
@@ -66,18 +67,21 @@ body {
  * Refatoração 2026-05-01
  * ========================================================== */
 
+/* sim-* tokens agora são aliases dos tokens globais (theme.css).
+   Mantidos para não quebrar a tela de simulação; fonte de verdade = --app-*.
+   Fallbacks preservam o visual caso theme.css não esteja carregado. */
 :root {
-    --sim-hero-bg: linear-gradient(135deg, #0d3a6e 0%, #1d5fb0 100%);
-    --sim-profit: #198754;
-    --sim-profit-soft: #d1f0dc;
-    --sim-profit-border: #b3e3c4;
-    --sim-warn: #b76b00;
-    --sim-warn-soft: #fff3d6;
-    --sim-warn-border: #f1d999;
-    --sim-neutral: #6c757d;
-    --sim-surface: #ffffff;
-    --sim-surface-2: #f6f8fb;
-    --sim-border: #e3e8ef;
+    --sim-hero-bg: var(--app-hero-grad, linear-gradient(135deg, #0d3a6e 0%, #1d5fb0 100%));
+    --sim-profit: var(--app-profit, #198754);
+    --sim-profit-soft: var(--app-profit-soft, #d1f0dc);
+    --sim-profit-border: var(--app-profit-border, #b3e3c4);
+    --sim-warn: var(--app-warn, #b76b00);
+    --sim-warn-soft: var(--app-warn-soft, #fff3d6);
+    --sim-warn-border: var(--app-warn-border, #f1d999);
+    --sim-neutral: var(--app-neutral, #6c757d);
+    --sim-surface: var(--app-surface, #ffffff);
+    --sim-surface-2: var(--app-surface-2, #f6f8fb);
+    --sim-border: var(--app-border, #e3e8ef);
 }
 
 body.sim-page-body {
@@ -190,9 +194,10 @@ body.sim-page-body {
 }
 .sim-card .sim-card-body { padding: 18px; }
 
-.sim-card.sim-card-tax .sim-card-head .step-num { background: #b76b00; }
-.sim-card.sim-card-titles .sim-card-head .step-num { background: #0a8754; }
-.sim-card.sim-card-loan .sim-card-head .step-num { background: #6f42c1; }
+/* Dieta de cor: acentos dos cards unificados na cor da marca (eram marrom/verde/roxo). */
+.sim-card.sim-card-tax .sim-card-head .step-num,
+.sim-card.sim-card-titles .sim-card-head .step-num,
+.sim-card.sim-card-loan .sim-card-head .step-num { background: #0d6efd; }
 
 /* Modality toggle */
 .sim-modality-toggle .btn {

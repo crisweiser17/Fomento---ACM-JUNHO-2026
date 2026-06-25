@@ -244,6 +244,15 @@ if ($operacao && !isset($error_message)) {
             // Atualizar variáveis de totais com valores calculados
             $totalOriginalCalculado = $totais_calculados['total_original'];
             $totalIOFTeoricoCalculado = $totais_calculados['total_iof'];
+            // Preferir as colunas _calc do banco (canônicas, já consideram compensação);
+            // se estiverem vazias (operações antigas sem cálculo persistido), usar o
+            // recálculo dinâmico como fallback para não exibir lucro/margem zerados.
+            if ((float)($operacao['total_liquido_pago_calc'] ?? 0) <= 0) {
+                $totalLiquidoPagoCalculado = $totais_calculados['total_liquido_pago'];
+            }
+            if ((float)($operacao['total_lucro_liquido_calc'] ?? 0) <= 0) {
+                $totalLucroLiquidoCalculado = $totais_calculados['total_lucro_liquido'];
+            }
             
             // Processar cada título para exibição usando dados calculados
             foreach ($recebiveis_db as $index => $r) {
@@ -378,9 +387,11 @@ if ($operacao && !isset($error_message)) {
     <title>Detalhes da Operação #<?php echo $operacao_id; ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="theme.css">
     <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="app.js" defer></script>
     <style>
         :root {
             --hero-bg-grad: linear-gradient(135deg, #0d3a6e 0%, #1d5fb0 100%);
@@ -450,12 +461,13 @@ if ($operacao && !isset($error_message)) {
         }
         .section-card .section-head .head-meta { font-size: 0.78rem; color: var(--neutral); }
         .section-card .section-body { padding: 18px; }
-        .section-card.s-recb .section-head .step-num   { background: #0d6efd; }
-        .section-card.s-data .section-head .step-num   { background: #6f42c1; }
-        .section-card.s-cont .section-head .step-num   { background: #d63384; }
-        .section-card.s-anex .section-head .step-num   { background: #fd7e14; }
-        .section-card.s-anot .section-head .step-num   { background: #0a8754; }
-        .section-card.s-flux .section-head .step-num   { background: #b76b00; }
+        /* Dieta de cor: acentos de seção unificados na cor da marca. */
+        .section-card.s-recb .section-head .step-num,
+        .section-card.s-data .section-head .step-num,
+        .section-card.s-cont .section-head .step-num,
+        .section-card.s-anex .section-head .step-num,
+        .section-card.s-anot .section-head .step-num,
+        .section-card.s-flux .section-head .step-num   { background: #0d6efd; }
 
         /* Sticky panel */
         .sticky-panel {
@@ -796,7 +808,7 @@ if ($operacao && !isset($error_message)) {
                         <div class="col-md-6 offset-md-6 border-top pt-3 mt-3">
                             <div class="mb-3">
                                 <strong class="text-muted d-block mb-1"><?php echo $labelValorLiberado; ?></strong>
-                                <div class="fs-5 text-primary fw-bold"><?php echo formatHtmlCurrency($totalLiquidoPagoCalculado); ?></div>
+                                <div class="fs-5 fw-bold"><?php echo formatHtmlCurrency($totalLiquidoPagoCalculado); ?></div>
                             </div>
                             <div>
                                 <strong class="text-muted d-block mb-1"><?php echo $labelResultadoLiquido; ?></strong>
@@ -1159,7 +1171,7 @@ if ($operacao && !isset($error_message)) {
                 <div class="section-head">
                     <span class="step-num">4</span>
                     <h5 class="mb-0">Documentos Anexados</h5>
-                    <button type="button" class="btn btn-sm" id="adicionarArquivosBtn" style="background:#fd7e14;color:#fff;">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="adicionarArquivosBtn">
                         <i class="bi bi-plus-circle"></i> Adicionar Arquivos
                     </button>
                 </div>
@@ -1702,11 +1714,13 @@ if ($operacao && !isset($error_message)) {
             <div class="col-xl-4">
                 <?php
                 // KPIs do painel sticky
-                $kpiTotalNominal = (float)($operacao['total_original_calc'] ?? 0);
-                $kpiLiquidoPago  = (float)($operacao['total_liquido_pago_calc'] ?? 0);
-                $kpiLucro        = (float)($operacao['total_lucro_liquido_calc'] ?? 0);
+                // Usa os totais recalculados na página (consistente com o detalhamento acima);
+                // as colunas _calc do banco ficam NULL em operações antigas e zeravam o resumo.
+                $kpiTotalNominal = (float)$totalOriginalCalculado;
+                $kpiLiquidoPago  = (float)$totalLiquidoPagoCalculado;
+                $kpiLucro        = (float)$totalLucroLiquidoCalculado;
                 $kpiTaxa         = (float)($operacao['taxa_mensal'] ?? 0) * 100;
-                $kpiIof          = (float)($operacao['iof_total_calc'] ?? 0);
+                $kpiIof          = (float)($totalIOFTeoricoCalculado ?? ($operacao['iof_total_calc'] ?? 0));
                 // Saldo em aberto e dias médios calculados a partir dos recebíveis
                 $kpiSaldoAberto = 0; $kpiQtdAberto = 0;
                 $kpiDiasSoma = 0; $kpiDiasCount = 0;
@@ -1758,6 +1772,7 @@ if ($operacao && !isset($error_message)) {
                     </div>
 
                     <div class="summary-grid">
+                        <div class="group-label"><i class="bi bi-graph-up"></i> Projeção da operação</div>
                         <div class="summary-cell profit span2">
                             <div class="c-label"><i class="bi bi-arrow-up-right"></i> Margem</div>
                             <div class="c-value"><?php echo number_format($kpiMargem, 2, ',', '.'); ?>%</div>
@@ -1780,7 +1795,8 @@ if ($operacao && !isset($error_message)) {
                         </div>
 
                         <?php if ($kpiCapitalAplicado > 0): ?>
-                        <div class="summary-cell info span2">
+                        <div class="group-label is-realizado"><i class="bi bi-cash-coin"></i> Realizado até agora</div>
+                        <div class="summary-cell span2">
                             <div class="c-label"><i class="bi bi-graph-up-arrow"></i> Progresso financeiro</div>
                             <div class="c-value">
                                 <?php echo formatHtmlCurrency($kpiRecebido); ?> recebido
@@ -1804,7 +1820,7 @@ if ($operacao && !isset($error_message)) {
                         <?php endif; ?>
 
                         <?php if ($kpiSaldoAberto > 0): ?>
-                        <div class="summary-cell warn span2">
+                        <div class="summary-cell span2">
                             <div class="c-label"><i class="bi bi-hourglass-split"></i> Saldo em aberto</div>
                             <div class="c-value">
                                 <?php echo formatHtmlCurrency($kpiSaldoAberto); ?>
@@ -1812,7 +1828,7 @@ if ($operacao && !isset($error_message)) {
                             </div>
                         </div>
                         <?php elseif ($kpiIof > 0): ?>
-                        <div class="summary-cell warn span2">
+                        <div class="summary-cell span2">
                             <div class="c-label"><i class="bi bi-receipt"></i> IOF total</div>
                             <div class="c-value"><?php echo formatHtmlCurrency($kpiIof); ?></div>
                         </div>
@@ -1820,7 +1836,7 @@ if ($operacao && !isset($error_message)) {
                     </div>
 
                     <div class="panel-actions">
-                        <button id="editarOperacaoBtnSticky" class="btn btn-warning"
+                        <button id="editarOperacaoBtnSticky" class="btn btn-outline-secondary"
                                 onclick="document.getElementById('editarOperacaoBtn').click();">
                             <i class="bi bi-pencil-square"></i> Editar Operação
                         </button>

@@ -94,62 +94,17 @@ $contaTitularReadonlyValue = $cliente['empresa'] ?? '';
 $contaDocumentoReadonlyValue = $cliente['documento_principal'] ?? '';
 
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($pageTitle); ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<?php
+$pageTitle = 'Cliente';
+require_once 'head.php';
+?>
     <style>
+        /* Estilos específicos do formulário (tokens e componentes base vêm de theme.css) */
         :root {
             --hero-bg-grad: linear-gradient(135deg, #0d3a6e 0%, #1d5fb0 100%);
-            --profit: #198754;
-            --profit-soft: #d1f0dc;
-            --warn: #b76b00;
-            --warn-soft: #fff3d6;
-            --danger: #b02a37;
-            --danger-soft: #fde2e4;
-            --neutral: #6c757d;
-            --surface: #ffffff;
-            --surface-2: #f6f8fb;
-            --border: #e3e8ef;
         }
-        body { background: #eef2f7; font-size: 0.95rem; }
+        body { font-size: 0.95rem; }
 
-        /* Toolbar */
-        .page-toolbar {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 14px 18px;
-            margin-bottom: 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
-        .page-toolbar h1 .subtitle {
-            font-size: 0.95rem;
-            font-weight: 400;
-            color: var(--neutral);
-            margin-left: 8px;
-        }
-        .id-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: #eef4ff;
-            color: #0a4ea8;
-            font-size: 0.78rem;
-            font-weight: 700;
-            margin-left: 6px;
-        }
         .status-badge {
             display: inline-flex;
             align-items: center;
@@ -159,49 +114,14 @@ $contaDocumentoReadonlyValue = $cliente['documento_principal'] ?? '';
             font-size: 0.8rem;
             font-weight: 600;
         }
-        .status-badge.editing { background: #fff3d6; color: #8a5a00; }
-        .status-badge.new { background: #eef4ff; color: #0a4ea8; }
+        .status-badge.editing { background: var(--app-warn-soft); color: var(--app-warn); }
+        .status-badge.new { background: var(--app-info-soft); color: var(--app-info); }
 
-        /* Section card */
-        .section-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            margin-bottom: 18px;
-            overflow: hidden;
-        }
-        .section-card .section-head {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            background: var(--surface-2);
-        }
-        .section-card .section-head .step-num {
-            width: 26px; height: 26px;
-            border-radius: 50%;
-            background: #0d6efd;
-            color: #fff;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.85rem;
-            flex-shrink: 0;
-        }
-        .section-card .section-head h2 {
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin: 0;
-            flex: 1;
-        }
-        .section-card .section-body { padding: 18px; }
-
-        .section-card.s-people .section-head .step-num { background: #6f42c1; }
-        .section-card.s-rep    .section-head .step-num { background: #d63384; }
-        .section-card.s-addr   .section-head .step-num { background: #fd7e14; }
-        .section-card.s-bank   .section-head .step-num { background: #0a8754; }
+        /* Dieta de cor: cabeçalhos de seção unificados na cor da marca (base em theme.css). */
+        .section-card.s-people .section-head .step-num,
+        .section-card.s-rep    .section-head .step-num,
+        .section-card.s-addr   .section-head .step-num,
+        .section-card.s-bank   .section-head .step-num { background: #0d6efd; }
 
         .section-status {
             font-size: 0.72rem;
@@ -342,7 +262,7 @@ $contaDocumentoReadonlyValue = $cliente['documento_principal'] ?? '';
             margin-bottom: 10px;
         }
         .socio-card .badge-num {
-            background: #6f42c1;
+            background: #0d6efd;
             color: #fff;
             font-size: 0.72rem;
             padding: 3px 9px;
@@ -378,9 +298,6 @@ $contaDocumentoReadonlyValue = $cliente['documento_principal'] ?? '';
         .loading-cep { display: none; }
         .loading-cep.show { display: block; }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
 
     <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
         <?php if (in_array($alertStatus, ['success', 'error'], true) && $alertMessage !== ''): ?>
@@ -504,7 +421,7 @@ $contaDocumentoReadonlyValue = $cliente['documento_principal'] ?? '';
                             <span class="step-num">2</span>
                             <h2>Sócios da Empresa</h2>
                             <span class="section-status empty" data-status-for="socios">—</span>
-                            <button type="button" class="btn btn-sm" id="btn-adicionar-socio" style="background:#6f42c1;color:#fff;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-adicionar-socio">
                                 <i class="bi bi-plus-circle"></i> Adicionar Sócio
                             </button>
                         </div>
@@ -796,9 +713,9 @@ $contaDocumentoReadonlyValue = $cliente['documento_principal'] ?? '';
                     <?php if (!$editMode): ?>
                     <div class="info-tabs mt-3" style="background:#fff8e1;border-color:#f1d999;">
                         <div class="px-3 py-2" style="background:#fff3d6;border-bottom:1px solid #f1d999;">
-                            <strong class="small text-uppercase" style="color:#8a5a00;"><i class="bi bi-lightbulb-fill"></i> Dica</strong>
+                            <strong class="small text-uppercase" style="color:var(--app-warn);"><i class="bi bi-lightbulb-fill"></i> Dica</strong>
                         </div>
-                        <div class="p-3 small" style="color:#7a5500;">
+                        <div class="p-3 small" style="color:var(--app-warn);">
                             Você só precisa preencher <strong>Razão Social</strong> e <strong>CNPJ</strong> para salvar.
                             Os demais dados podem ser completados depois.
                         </div>
@@ -811,7 +728,6 @@ $contaDocumentoReadonlyValue = $cliente['documento_principal'] ?? '';
 
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.9/jquery.inputmask.min.js"></script>
 

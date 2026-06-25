@@ -109,24 +109,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Operação #<?php echo $operacao_id; ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
+<?php
+$pageTitle = 'Editar Operação #' . $operacao_id;
+require_once 'head.php';
+?>
 
     <div class="container-fluid px-3 px-md-4 mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-            <h1>Editar Operação #<?php echo htmlspecialchars($operacao_id); ?></h1>
-            <a href="detalhes_operacao.php?id=<?php echo $operacao_id; ?>" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Voltar para Detalhes
-            </a>
+        <div class="page-toolbar">
+            <div class="toolbar-main">
+                <h1><i class="bi bi-pencil-square text-info"></i> Editar Operação <span class="id-pill"><i class="bi bi-hash"></i><?php echo htmlspecialchars($operacao_id); ?></span></h1>
+            </div>
+            <div class="toolbar-actions">
+                <a href="detalhes_operacao.php?id=<?php echo $operacao_id; ?>" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar para Detalhes
+                </a>
+            </div>
         </div>
 
         <?php if ($error_message): ?>
@@ -260,18 +257,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-between">
-                    <a href="detalhes_operacao.php?id=<?php echo $operacao_id; ?>" class="btn btn-secondary">
+                <div class="form-actions">
+                    <a href="detalhes_operacao.php?id=<?php echo $operacao_id; ?>" class="btn btn-outline-secondary spacer">
                         <i class="bi bi-x-lg"></i> Cancelar
                     </a>
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-lg"></i> Salvar Alterações
                     </button>
                 </div>
             </form>
         <?php endif; ?>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

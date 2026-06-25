@@ -35,29 +35,13 @@ function origemBadgeKb($o) {
     return '<span class="origem-pill ' . $cls . '">' . $label . '</span>';
 }
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kanban de Leads</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<?php
+$pageTitle = 'Kanban de Leads';
+require_once 'head.php';
+?>
     <style>
-        :root {
-            --info: #0a4ea8; --info-soft: #eef4ff;
-            --neutral: #6c757d;
-            --surface: #ffffff; --surface-2: #f6f8fb;
-            --border: #e3e8ef;
-            --profit: #198754; --profit-soft: #d1f0dc;
-            --warn: #b76b00;
-            --danger: #b02a37;
-        }
-        body { background: #eef2f7; font-size: 0.95rem; }
-
-        .page-toolbar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
-        .id-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--info-soft); color: var(--info); font-size: 0.78rem; font-weight: 700; margin-left: 6px; }
+        /* Estilos específicos do Kanban (tokens e .page-toolbar vêm de theme.css) */
+        body { font-size: 0.95rem; }
 
         .view-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
         .view-toggle a { padding: 6px 12px; font-size: 0.85rem; color: var(--neutral); text-decoration: none; background: var(--surface); border-right: 1px solid var(--border); }
@@ -147,20 +131,8 @@ function origemBadgeKb($o) {
 
         .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
 
     <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1700px;">
-
-        <?php if (isset($_GET['status'])): ?>
-            <?php if ($_GET['status'] === 'success'): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle-fill"></i> <?php echo htmlspecialchars($_GET['msg'] ?? ''); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
-        <?php endif; ?>
 
         <div class="page-toolbar">
             <div>
@@ -264,10 +236,9 @@ function origemBadgeKb($o) {
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" defer></script>
     <script>
-    (function() {
+    document.addEventListener('DOMContentLoaded', function() {
         function showToast(msg, type) {
             const cls = type === 'error' ? 'bg-danger' : 'bg-success';
             const el = document.createElement('div');
@@ -333,7 +304,7 @@ function origemBadgeKb($o) {
                 new bootstrap.Modal(document.getElementById('modalArquivar')).show();
             });
         });
-    })();
+    });
     </script>
 </body>
 </html>

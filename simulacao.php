@@ -60,8 +60,10 @@ if ($preselect_cliente_id !== null) {
     <title>Nova Simulação / Registro - Calculadora</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="theme.css">
     <?php $styleCssVersion = file_exists(__DIR__ . '/style.css') ? (string) filemtime(__DIR__ . '/style.css') : 'missing'; ?>
     <link rel="stylesheet" href="style.css?v=<?php echo rawurlencode($styleCssVersion); ?>">
+    <script src="app.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <style>
         /* Estilos CSS (mantidos como no seu arquivo) */
@@ -76,7 +78,7 @@ if ($preselect_cliente_id !== null) {
         .result-row-2 .resultado-total-item .value { font-size: 1.3em; font-weight: bold; }
         .result-row-2 .resultado-total-item .label { font-size: 0.85em; }
         .value.profit { color: #198754; }
-        .value.loss { color: #dc3545; }
+        .value.loss { color: var(--app-danger, #b02a37); }
         .cobrar-iof-wrapper.d-none { display: none !important; }
         .dias-restantes-cell { text-align: center; vertical-align: middle; font-style: italic; color: #6c757d; font-size: 0.9em;}
         /* NOVA CLASSE CSS PARA A NOVA COLUNA */
@@ -126,7 +128,7 @@ if ($preselect_cliente_id !== null) {
           <div class="col-xl-8">
 
               <!-- Card 1: Modalidade -->
-              <div class="sim-card">
+              <div class="sim-card" id="simStep1">
                   <div class="sim-card-head">
                       <span class="step-num">1</span>
                       <h2>Modalidade da Operação</h2>
@@ -144,7 +146,7 @@ if ($preselect_cliente_id !== null) {
               </div>
 
               <!-- Card 2: Cliente & Parâmetros -->
-              <div class="sim-card">
+              <div class="sim-card" id="simStep2">
                   <div class="sim-card-head">
                       <span class="step-num">2</span>
                       <h2>Cliente &amp; Parâmetros</h2>
@@ -292,7 +294,7 @@ if ($preselect_cliente_id !== null) {
               </fieldset>
 
               <!-- Card 4: Títulos a Descontar -->
-              <div class="sim-card sim-card-titles">
+              <div class="sim-card sim-card-titles" id="simStep4">
                   <div class="sim-card-head">
                       <span class="step-num">4</span>
                       <h2 id="legendTitulos">Títulos a Descontar</h2>
@@ -2722,6 +2724,50 @@ if (exportPdfClienteBtn) { // Verifica se o botão existe no HTML
        }
        syncStepper();
    })();
+   </script>
+
+   <script>
+   /* Stepper clicável + aviso de resumo desatualizado (não interfere no syncStepper). */
+   document.addEventListener('DOMContentLoaded', function () {
+       // 1) Stepper clicável: rola suavemente até a seção correspondente.
+       const stepTargets = { '1': 'simStep1', '2': 'simStep2', '3': 'cardTributacao', '4': 'simStep4', '5': 'summaryPanel' };
+       document.querySelectorAll('#simStepper li[data-step]').forEach(function (li) {
+           li.style.cursor = 'pointer';
+           li.setAttribute('role', 'button');
+           li.setAttribute('title', 'Ir para esta etapa');
+           li.addEventListener('click', function () {
+               const target = document.getElementById(stepTargets[li.dataset.step]);
+               if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+           });
+       });
+
+       // 2) Aviso de resumo desatualizado: após calcular, se algum campo mudar,
+       //    avisa que é preciso recalcular antes de registrar.
+       const summaryPanel = document.getElementById('summaryPanel');
+       const registerBtn = document.getElementById('registerBtn');
+       const calcForm = document.getElementById('calculationForm');
+       if (summaryPanel && registerBtn && calcForm) {
+           const staleBar = document.createElement('div');
+           staleBar.id = 'simStaleWarning';
+           staleBar.style.cssText = 'display:none;background:#fff3d6;color:#8a5a00;font-size:.8rem;font-weight:600;padding:8px 14px;border-top:1px solid #f1d999;text-align:center;';
+           staleBar.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Os valores mudaram. Clique em <b>Calcular Totais</b> para atualizar o resumo.';
+           const actions = summaryPanel.querySelector('.sim-summary-actions');
+           if (actions) { actions.parentNode.insertBefore(staleBar, actions); } else { summaryPanel.appendChild(staleBar); }
+
+           let calcFresh = false;
+           // registerBtn habilitado = cálculo concluído com sucesso.
+           new MutationObserver(function () {
+               if (!registerBtn.disabled) { calcFresh = true; staleBar.style.display = 'none'; }
+           }).observe(registerBtn, { attributes: true, attributeFilter: ['disabled'] });
+
+           calcForm.addEventListener('input', function (e) {
+               if (!calcFresh) return;
+               if (e.target.closest('.sim-summary-actions')) return;
+               calcFresh = false;
+               staleBar.style.display = 'block';
+           });
+       }
+   });
    </script>
 
 </body>
