@@ -235,7 +235,7 @@ require_once 'head.php';
         .motivo-perda { font-size: 0.78rem; color: var(--danger); margin-top: 4px; }
     </style>
 
-    <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
+    <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
 
         <div class="page-toolbar">
             <div>

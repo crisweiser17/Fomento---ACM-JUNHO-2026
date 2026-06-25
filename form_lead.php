@@ -62,7 +62,7 @@ require_once 'head.php';
             color: #6c757d; font-weight: 600; margin-bottom: 6px;
         }
     </style>
-    <div class="container px-3 px-md-4 mt-4" style="max-width: 1100px;">
+    <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
         <div class="page-toolbar">
             <h1><i class="bi bi-person-plus-fill text-info"></i> <?php echo htmlspecialchars($pageTitle); ?></h1>
             <a href="listar_leads.php" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Voltar</a>

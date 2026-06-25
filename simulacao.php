@@ -97,7 +97,7 @@ if ($preselect_cliente_id !== null) {
 <body class="sim-page-body">
   <?php require_once 'menu.php'; ?>
 
-  <div class="container-fluid px-3 px-md-4 mt-4">
+  <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
 
       <!-- Toolbar -->
       <div class="sim-toolbar">

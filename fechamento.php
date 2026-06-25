@@ -23,7 +23,7 @@ require_once 'head.php';
         .totals-row { background-color: #f8f9fa; border-top: 2px solid #dee2e6; }
     </style>
 
-<div class="container mb-5">
+<div class="container mb-5 app-shell-width">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="bi bi-wallet2"></i> Fechamento Mensal</h2>
         <div class="d-flex gap-2">

@@ -299,7 +299,7 @@ require_once 'head.php';
         .loading-cep.show { display: block; }
     </style>
 
-    <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
+    <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
         <?php if (in_array($alertStatus, ['success', 'error'], true) && $alertMessage !== ''): ?>
             <div class="alert alert-<?php echo $alertStatus === 'success' ? 'success' : 'danger'; ?> alert-dismissible fade show" role="alert">
                 <i class="bi <?php echo $alertStatus === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'; ?>"></i>

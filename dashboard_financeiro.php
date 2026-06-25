@@ -29,7 +29,7 @@ require_once 'head.php';
         .trend-flat { color: #6c757d; background-color: #e9ecef; }
     </style>
 
-    <div class="container-fluid px-4 py-4">
+    <div class="container-fluid px-4 py-4 app-shell-width">
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <h2 class="mb-0"><i class="bi bi-graph-up-arrow text-primary"></i> Dashboard Financeiro</h2>
             <div class="d-flex align-items-center gap-2">

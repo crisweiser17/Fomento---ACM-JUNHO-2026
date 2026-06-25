@@ -132,7 +132,7 @@ require_once 'head.php';
         .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
     </style>
 
-    <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1700px;">
+    <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
 
         <div class="page-toolbar">
             <div>

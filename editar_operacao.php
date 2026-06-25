@@ -114,7 +114,7 @@ $pageTitle = 'Editar Operação #' . $operacao_id;
 require_once 'head.php';
 ?>
 
-    <div class="container-fluid px-3 px-md-4 mt-4">
+    <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
         <div class="page-toolbar">
             <div class="toolbar-main">
                 <h1><i class="bi bi-pencil-square text-info"></i> Editar Operação <span class="id-pill"><i class="bi bi-hash"></i><?php echo htmlspecialchars($operacao_id); ?></span></h1>

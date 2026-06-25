@@ -575,7 +575,7 @@ if ($operacao && !isset($error_message)) {
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container-fluid px-3 px-md-4 mt-4">
+    <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
 
         <?php if (isset($_GET['status']) && $_GET['status'] === 'updated'): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">

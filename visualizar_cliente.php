@@ -317,7 +317,7 @@ require_once 'head.php';
         }
     </style>
 
-    <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
+    <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
 
         <!-- Toolbar -->
         <div class="page-toolbar">

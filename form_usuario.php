@@ -30,7 +30,7 @@ $pageTitle = $is_edit ? 'Editar Usuário' : 'Novo Usuário';
 require_once 'head.php';
 ?>
 
-    <div class="container-fluid px-3 px-md-4 mt-4">
+    <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
         <div class="row justify-content-center">
             <div class="col-md-6">
                 <div class="card shadow-sm">

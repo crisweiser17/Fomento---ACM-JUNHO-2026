@@ -319,7 +319,7 @@ require_once 'head.php';
         .danger-warning strong { color: var(--danger); }
     </style>
 
-    <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1200px;">
+    <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
 
         <?php if ($message): ?>
             <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show" role="alert">

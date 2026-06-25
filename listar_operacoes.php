@@ -364,7 +364,7 @@ require_once 'head.php';
         }
     </style>
 
-    <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
+    <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
 
         <?php if (isset($error_message_count)) echo "<div class='alert alert-danger'>$error_message_count</div>"; ?>
         <?php if (isset($error_message_data)) echo "<div class='alert alert-danger'>$error_message_data</div>"; ?>

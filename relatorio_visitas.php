@@ -178,7 +178,7 @@ require_once 'head.php';
         .periodo-badge { background: var(--info-soft); color: var(--info); padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
     </style>
 
-    <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
+    <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
 
         <div class="page-toolbar">
             <div>
