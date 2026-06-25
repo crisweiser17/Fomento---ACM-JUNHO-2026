@@ -165,6 +165,8 @@ body.app-page .container-fluid {
 .status-pill.s-ativo     { background: var(--app-profit-soft); color: var(--app-profit); }
 .status-pill.s-parcial   { background: var(--app-warn-soft);   color: var(--app-warn); }
 .status-pill.s-problema  { background: var(--app-danger-soft); color: var(--app-danger); }
+.status-pill.s-recebido  { background: var(--app-profit-soft); color: var(--app-profit); }
+.status-pill.s-compensado{ background: #eef0f3;                color: #5a6470; }
 .status-pill.s-neutro    { background: #eef0f3;                color: var(--app-neutral); }
 
 /* Pills de tipo de operação */
@@ -181,6 +183,40 @@ body.app-page .container-fluid {
    fica neutro em vez de verde/laranja, reduzindo o ruído em cada linha da tabela. */
 .pill-tipo.antecip,
 .pill-tipo.empr { background: #eef0f3; color: #5a6470; }
+
+/* ---------- 3b. Botões de ação em tabela ---------- */
+/* Quadradinhos de ação (Receber/Problema/Reverter/Ver) em tons suaves para a
+   tabela não virar um mural de quadrados saturados. A cor semântica continua
+   legível; satura só no hover. Classes Bootstrap preservadas (o JS reinjeta
+   esse HTML, então mantemos .btn-success/.btn-danger/etc como gancho). */
+.action-btn {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    padding: 0;
+    font-size: 0.85rem;
+    line-height: 1;
+    margin: 0;
+}
+.action-btn:not(:last-child) { margin-right: 2px; }
+.action-btn.btn-success,
+.action-btn.btn-danger,
+.action-btn.btn-secondary,
+.action-btn.btn-primary {
+    border-color: transparent;
+    box-shadow: none;
+}
+.action-btn.btn-success   { background: var(--app-profit-soft); color: var(--app-profit); }
+.action-btn.btn-danger    { background: var(--app-danger-soft); color: var(--app-danger); }
+.action-btn.btn-primary   { background: var(--app-info-soft);   color: var(--app-info); }
+.action-btn.btn-secondary { background: #eef0f3;                color: #5a6470; }
+.action-btn.btn-success:hover   { background: var(--app-profit); color: #fff; }
+.action-btn.btn-danger:hover    { background: var(--app-danger); color: #fff; }
+.action-btn.btn-primary:hover   { background: var(--app-info);   color: #fff; }
+.action-btn.btn-secondary:hover { background: #5a6470;           color: #fff; }
 
 /* ---------- 4. KPI cards ---------- */
 .kpi-strip {
@@ -717,6 +753,12 @@ body.app-page .container-fluid {
     padding: 9px 0;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+.app-footer-link {
+    color: rgba(255, 255, 255, 0.75);
+    text-decoration: none;
+}
+.app-footer-link:hover { color: #fff; text-decoration: underline; }
 
 /* Largura compartilhada: navbar e footer acompanham o conteúdo (max 1500px). */
 .app-shell-width {

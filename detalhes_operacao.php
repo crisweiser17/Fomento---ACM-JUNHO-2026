@@ -33,83 +33,75 @@ if (!function_exists('formatHtmlDate')) {
 
 if (!function_exists('formatHtmlStatus')) {
     function formatHtmlStatus($status, $data_recebimento = null, $saldo_aberto = null, $operacao_compensadora = null) {
-        $badgeClass = 'bg-secondary';
-        $tooltip = '';
+        // Dieta de cor (igual à tela de Recebíveis): pills suaves. Cor só onde
+        // comunica desfecho — verde = recebido, vermelho = problema. Os demais
+        // estados ficam neutros para não poluir a coluna Status.
+        $pillClass = 's-neutro';
+        $tooltip = 'Aguardando ação ou recebimento';
         switch ($status) {
             case 'Em Aberto':
-                $badgeClass = 'bg-info text-dark';
+                $pillClass = 's-neutro';
                 $tooltip = 'Aguardando ação ou recebimento';
                 break;
             case 'Parcialmente Compensado':
-                $badgeClass = 'bg-warning text-dark';
+                $pillClass = 's-neutro';
                 $tooltip = 'Parcialmente compensado por outra operação';
                 break;
             case 'Compensado':
-                $badgeClass = 'bg-secondary';
+                $pillClass = 's-neutro';
                 $tooltip = 'Totalmente compensado por outra operação';
                 break;
             case 'Recebido':
-                $badgeClass = 'bg-success';
+                $pillClass = 's-recebido';
                 $tooltip = 'Recebimento confirmado';
-                // Se tiver data de recebimento, incluir no tooltip
                 if (!empty($data_recebimento)) {
-                    $dataFormatada = formatHtmlDate($data_recebimento);
-                    $tooltip .= ' em ' . $dataFormatada;
+                    $tooltip .= ' em ' . formatHtmlDate($data_recebimento);
                 }
                 break;
             case 'Problema':
-                $badgeClass = 'bg-danger';
+                $pillClass = 's-problema';
                 $tooltip = 'Problema no recebimento';
                 break;
         }
-        
+
         // Se for "Recebido" e tiver data, usar tooltip customizado
         if ($status === 'Recebido' && !empty($data_recebimento)) {
             return '<div class="tooltip-wrapper">
-                        <span class="badge ' . $badgeClass . '">' . htmlspecialchars($status) . '</span>
+                        <span class="status-pill ' . $pillClass . '">' . htmlspecialchars($status) . '</span>
                         <span class="tooltip-text">' . htmlspecialchars($tooltip) . '</span>
                     </div>';
         }
-        
-        // Se for "Parcialmente Compensado", mostrar badge + saldo em aberto
+
+        // Se for "Parcialmente Compensado", mostrar pill + saldo em aberto
         if ($status === 'Parcialmente Compensado' && $saldo_aberto !== null && $saldo_aberto > 0) {
-            $badgeContent = htmlspecialchars($status);
-            
+            $pillContent = htmlspecialchars($status);
+
             // Se tiver operação compensadora, criar link
             if ($operacao_compensadora !== null && $operacao_compensadora > 0) {
-                $badgeContent = '<a href="detalhes_operacao.php?id=' . $operacao_compensadora . '"
-                                   class="text-decoration-none text-dark"
+                $pillContent = '<a href="detalhes_operacao.php?id=' . $operacao_compensadora . '"
+                                   class="text-decoration-none"
+                                   style="color: inherit;"
                                    title="Ver operação #' . $operacao_compensadora . ' que compensou este recebível">' .
                                    htmlspecialchars($status) . '</a>';
             }
-            
+
             return '<div>
-                        <span class="badge ' . $badgeClass . '">' . $badgeContent . '</span>
+                        <span class="status-pill ' . $pillClass . '">' . $pillContent . '</span>
                         <br><small class="text-muted">Saldo: ' . formatHtmlCurrency($saldo_aberto) . '</small>
                     </div>';
         }
-        
+
         // Para outros casos, usar tooltip padrão
-        return '<span class="badge ' . $badgeClass . '" title="' . htmlspecialchars($tooltip) . '">' . htmlspecialchars($status) . '</span>';
+        return '<span class="status-pill ' . $pillClass . '" title="' . htmlspecialchars($tooltip) . '">' . htmlspecialchars($status) . '</span>';
     }
 }
 
 if (!function_exists('getTableRowClass')) {
     function getTableRowClass($status, $data_vencimento = null) {
-        // Recebíveis vencidos (e ainda não recebidos/compensados) ganham destaque vermelho
-        if ($data_vencimento && !in_array($status, ['Recebido', 'Compensado', 'Totalmente Compensado'])) {
-            $hoje = date('Y-m-d');
-            if ($data_vencimento < $hoje) {
-                return 'table-danger fw-bold';
-            }
-        }
-        switch ($status) {
-            case 'Recebido': return 'table-light text-muted opacity-75';
-            case 'Problema': return 'table-danger fw-bold';
-            case 'Parcialmente Compensado': return 'table-warning';
-            case 'Compensado': return 'table-secondary text-muted';
-            case 'Em Aberto': default: return '';
-        }
+        // Igual à tela de Recebíveis: linhas não recebem cor de fundo por status
+        // (zebra cuida da leitura). Status e urgência são comunicados pelos pills
+        // nas colunas Status e Vencimento, evitando o "mural vermelho".
+        return '';
     }
 }
 
@@ -379,169 +371,44 @@ if ($operacao && !isset($error_message)) {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalhes da Operação #<?php echo $operacao_id; ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="theme.css">
+<?php
+// <head> + navbar centralizados no head.php (theme.css/style.css/app.js/bootstrap).
+// Aqui só entram os assets e estilos REALMENTE específicos desta tela.
+$pageTitle = "Detalhes da Operação #" . $operacao_id;
+$headExtra = <<<'HTML'
     <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-    <script src="app.js" defer></script>
     <style>
-        :root {
-            --hero-bg-grad: linear-gradient(135deg, #0d3a6e 0%, #1d5fb0 100%);
-            --view-grad: linear-gradient(135deg, #0a8754 0%, #15b079 100%);
-            --profit: #198754; --profit-soft: #d1f0dc;
-            --warn: #b76b00; --warn-soft: #fff3d6;
-            --danger: #b02a37; --danger-soft: #fde2e4;
-            --info: #0a4ea8; --info-soft: #eef4ff;
-            --neutral: #6c757d;
-            --surface: #ffffff; --surface-2: #f6f8fb;
-            --border: #e3e8ef;
-        }
-        body { background: #eef2f7; font-size: 0.95rem; }
+        /* Tokens e componentes (page-toolbar, status-pill, pill-tipo, section-card,
+           sticky-panel, summary-*, panel-actions, id-pill) vêm do theme.css.
+           Mantemos abaixo só o que é exclusivo desta tela. */
+        body.app-page { font-size: 0.95rem; }
 
-        /* Toolbar */
-        .page-toolbar {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px 18px; margin-bottom: 18px;
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 12px;
-        }
-        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
-        .page-toolbar h1 .subtitle { font-size: 0.95rem; font-weight: 400; color: var(--neutral); margin-left: 8px; }
-        .id-pill {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 4px 10px; border-radius: 999px;
-            background: var(--info-soft); color: var(--info);
-            font-size: 0.78rem; font-weight: 700; margin-left: 6px;
-        }
-        .status-pill {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 4px 10px; border-radius: 999px;
-            font-size: 0.78rem; font-weight: 600;
-        }
-        .status-pill.s-aberto    { background: var(--info-soft); color: var(--info); }
-        .status-pill.s-concluida { background: var(--profit-soft); color: var(--profit); }
-        .status-pill.s-parcial   { background: var(--warn-soft); color: var(--warn); }
-        .status-pill.s-problema  { background: var(--danger-soft); color: var(--danger); }
-        .pill-tipo {
-            display: inline-flex; align-items: center; gap: 4px;
-            padding: 3px 9px; border-radius: 999px;
-            font-size: 0.78rem; font-weight: 600;
-        }
-        .pill-tipo.antecip { background: var(--profit-soft); color: var(--profit); }
-        .pill-tipo.empr    { background: var(--warn-soft); color: var(--warn); }
-
-        /* Section card (substitui .card) */
-        .section-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 14px; margin-bottom: 18px; overflow: hidden;
-        }
-        .section-card .section-head {
-            display: flex; align-items: center; gap: 10px;
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            background: var(--surface-2);
-        }
-        .section-card .section-head .step-num {
-            width: 26px; height: 26px; border-radius: 50%;
-            background: #0d6efd; color: #fff;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
-        }
-        .section-card .section-head h2,
-        .section-card .section-head h5 {
-            font-size: 0.95rem; font-weight: 600; margin: 0; flex: 1;
-        }
-        .section-card .section-head .head-meta { font-size: 0.78rem; color: var(--neutral); }
-        .section-card .section-body { padding: 18px; }
-        /* Dieta de cor: acentos de seção unificados na cor da marca. */
-        .section-card.s-recb .section-head .step-num,
-        .section-card.s-data .section-head .step-num,
-        .section-card.s-cont .section-head .step-num,
-        .section-card.s-anex .section-head .step-num,
-        .section-card.s-anot .section-head .step-num,
-        .section-card.s-flux .section-head .step-num   { background: #0d6efd; }
-
-        /* Sticky panel */
-        .sticky-panel {
-            position: sticky; top: 16px;
-            border-radius: 14px; overflow: hidden;
-            border: 1px solid var(--border); background: #fff;
-            margin-bottom: 18px;
-        }
-        .sticky-panel .panel-head {
-            padding: 14px 18px;
-            display: flex; justify-content: space-between; align-items: center;
-            color: #fff; background: var(--hero-bg-grad);
-        }
-        .sticky-panel .panel-head h3 {
-            font-size: 0.85rem; margin: 0; font-weight: 600;
-            text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.92;
-        }
-        .summary-hero {
-            background: var(--hero-bg-grad); color: #fff;
-            padding: 6px 18px 22px;
-        }
-        .summary-hero .h-label { font-size: 0.78rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.04em; }
-        .summary-hero .h-value { font-size: 2.05rem; font-weight: 700; line-height: 1.1; }
-        .summary-hero .h-sub { font-size: 0.8rem; opacity: 0.85; margin-top: 4px; }
-        .summary-grid {
-            display: grid; grid-template-columns: 1fr 1fr;
-            gap: 8px; padding: 14px; background: var(--surface);
-        }
-        .summary-cell {
-            border-radius: 10px; padding: 10px 12px;
-            background: var(--surface-2); border: 1px solid var(--border);
-        }
-        .summary-cell .c-label {
-            font-size: 0.7rem; color: var(--neutral);
-            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
-        }
-        .summary-cell .c-value { font-size: 1.05rem; font-weight: 700; margin-top: 2px; }
-        .summary-cell.span2 { grid-column: 1 / -1; }
-        .summary-cell.profit { background: var(--profit-soft); border-color: #b3e3c4; }
-        .summary-cell.profit .c-value { color: var(--profit); }
-        .summary-cell.warn { background: var(--warn-soft); border-color: #f1d999; }
-        .summary-cell.warn .c-value { color: var(--warn); }
-        .summary-cell.info { background: #e7f1ff; border-color: #b6d4fe; }
-        .summary-cell.info .c-value { color: #0a58ca; }
+        /* Barra de recuperação (não existe no theme.css) */
         .progress-recup {
             margin-top: 8px; height: 8px; border-radius: 4px;
             background: rgba(0,0,0,0.08); overflow: hidden;
         }
         .progress-recup-bar {
-            height: 100%; background: linear-gradient(90deg, var(--profit) 0%, #4caf80 100%);
+            height: 100%; background: var(--app-profit);
             border-radius: 4px; transition: width 0.4s ease;
         }
         .progress-breakdown {
             display: flex; justify-content: space-between; gap: 8px;
-            margin-top: 8px; font-size: 0.78rem; color: var(--neutral);
+            margin-top: 8px; font-size: 0.78rem; color: var(--app-neutral);
         }
-        .progress-breakdown b { color: #1c2229; font-weight: 700; }
+        .progress-breakdown b { color: var(--app-ink); font-weight: 700; }
         .progress-status { margin-top: 6px; font-size: 0.78rem; font-weight: 600; }
-        .progress-status.ok { color: var(--profit); }
-        .progress-status.pending { color: var(--warn); }
-        .panel-actions {
-            padding: 14px 16px; border-top: 1px solid var(--border);
-            display: flex; flex-direction: column; gap: 8px;
-            background: var(--surface);
-        }
-        .panel-actions .btn { font-weight: 600; }
-        .panel-actions .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .progress-status.ok { color: var(--app-profit); }
+        .progress-status.pending { color: var(--app-warn); }
 
         /* Estilos legados preservados */
         .table th { width: auto; }
         .list-group-item strong { display: inline-block; width: 180px; }
         .chart-wrapper { position: relative; min-height: 700px; margin-top: 20px; margin-bottom: 30px; }
         .chart-wrapper canvas { max-width: 100%; max-height: 100%; }
-        .action-btn { margin: 0 2px; padding: 0.15rem 0.4rem; font-size: 0.8em; }
+        /* .action-btn agora vem do theme.css (tons suaves, igual à listagem) */
 
         /* Tooltip customizado */
         .tooltip-wrapper { position: relative; display: inline-block; }
@@ -571,9 +438,9 @@ if ($operacao && !isset($error_message)) {
         }
         .viewer-backdrop { background-color: rgba(0, 0, 0, 0.85) !important; }
     </style>
-</head>
-<body>
-    <?php require_once 'menu.php'; ?>
+HTML;
+require_once 'head.php';
+?>
 
     <div class="container-fluid px-3 px-md-4 mt-4 app-shell-width">
 
@@ -716,9 +583,9 @@ if ($operacao && !isset($error_message)) {
                             <div>
                                 <?php 
                                 if ($isEmprestimo) {
-                                    echo '<span class="badge bg-warning text-dark"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
+                                    echo '<span class="pill-tipo empr"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
                                 } else {
-                                    echo '<span class="badge bg-success text-white"><i class="bi bi-arrow-return-left"></i> ' . $labelTipoOperacao . '</span>';
+                                    echo '<span class="pill-tipo antecip"><i class="bi bi-arrow-return-left"></i> ' . htmlspecialchars($labelTipoOperacao) . '</span>';
                                 }
                                 ?>
                             </div>
@@ -1084,7 +951,7 @@ if ($operacao && !isset($error_message)) {
                                 </tr>
                             <?php endforeach; ?>
                             <?php if ($operacao['valor_total_compensacao'] > 0): ?>
-                            <tr style="background-color: #fff3cd; color: #856404;">
+                            <tr style="background-color: var(--app-warn-soft); color: var(--app-warn);">
                                 <td class="text-center">-</td>
                                 <td class="text-center">Abatimento</td>
                                 <td class="text-center">-</td>
@@ -1093,7 +960,7 @@ if ($operacao && !isset($error_message)) {
                                 <td class="text-end"><?php echo formatHtmlCurrency(-$operacao['valor_total_compensacao']); ?></td>
                                 <td class="text-end"><?php echo formatHtmlCurrency(0); ?></td>
                                 <td class="text-end"><?php echo formatHtmlCurrency(0); ?></td>
-                                <td class="text-center"><span class="badge bg-warning">Abatido</span></td>
+                                <td class="text-center"><span class="status-pill s-neutro">Abatido</span></td>
                                 <td class="text-center">-</td>
                             </tr>
                             <?php endif; ?>
@@ -1127,9 +994,9 @@ if ($operacao && !isset($error_message)) {
                         'pendente' => 'Pendente'
                     ];
                     $statusDisplay = $statusMap[$statusRaw] ?? ucfirst($statusRaw);
-                    $badgeClass = ($statusRaw === 'assinado') ? 'bg-success' : 'bg-warning text-dark';
+                    $pillClass = ($statusRaw === 'assinado') ? 's-concluida' : 's-parcial';
                     ?>
-                    <span class="badge <?php echo $badgeClass; ?>" id="statusContratoBadge">
+                    <span class="status-pill <?php echo $pillClass; ?>" id="statusContratoBadge">
                         Status: <?php echo htmlspecialchars($statusDisplay); ?>
                     </span>
                 </div>
@@ -1239,7 +1106,7 @@ if ($operacao && !isset($error_message)) {
                     <span class="step-num">5</span>
                     <h5 class="mb-0">Anotações</h5>
                     <span class="head-meta"><?php echo count($anotacoes ?? []); ?> registro<?php echo count($anotacoes ?? []) === 1 ? '' : 's'; ?></span>
-                    <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#novaAnotacaoModal" style="background:#0a8754;color:#fff;">
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#novaAnotacaoModal">
                         <i class="bi bi-plus-circle"></i> Nova Anotação
                     </button>
                 </div>
@@ -1265,7 +1132,7 @@ if ($operacao && !isset($error_message)) {
                                             </div>
                                             <div class="d-flex align-items-center gap-2">
                                                 <?php if ($anotacao['recebivel_id']): ?>
-                                                    <span class="badge bg-info text-dark" title="Vinculado ao Recebível #<?php echo $anotacao['recebivel_id']; ?>">
+                                                    <span class="status-pill s-aberto" title="Vinculado ao Recebível #<?php echo $anotacao['recebivel_id']; ?>">
                                                         <?php echo htmlspecialchars(ucfirst($anotacao['recebivel_tipo'] ?? 'Recebível')); ?> #<?php echo $anotacao['recebivel_id']; ?>
                                                         <?php if (!empty($anotacao['recebivel_vencimento'])): ?>
                                                             | Venc: <?php echo formatHtmlDate($anotacao['recebivel_vencimento']); ?>
@@ -1275,7 +1142,7 @@ if ($operacao && !isset($error_message)) {
                                                         <?php endif; ?>
                                                     </span>
                                                 <?php else: ?>
-                                                    <span class="badge bg-secondary">Geral</span>
+                                                    <span class="status-pill s-neutro">Geral</span>
                                                 <?php endif; ?>
                                                 <button type="button" class="btn btn-sm btn-outline-danger border-0 ms-2" onclick="apagarAnotacao(<?php echo $anotacao['id']; ?>)" title="Excluir Anotação">
                                                     <i class="bi bi-trash"></i>
@@ -1757,7 +1624,7 @@ if ($operacao && !isset($error_message)) {
                 <div class="sticky-panel">
                     <div class="panel-head">
                         <h3><i class="bi bi-bar-chart-fill"></i> Resumo da Operação</h3>
-                        <span class="badge bg-light text-primary">#<?php echo (int)$operacao['id']; ?></span>
+                        <span class="id-pill">#<?php echo (int)$operacao['id']; ?></span>
                     </div>
 
                     <div class="summary-hero">
@@ -2497,13 +2364,13 @@ if ($operacao && !isset($error_message)) {
                 // Definir a miniatura com base no tipo de arquivo
                 let miniaturaHtml = '';
                 if (arquivo.is_image) {
-                    miniaturaHtml = `<div style="width: 60px; height: 60px; overflow: hidden; border-radius: 4px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa;">
+                    miniaturaHtml = `<div style="width: 60px; height: 60px; overflow: hidden; border-radius: 4px; display: flex; align-items: center; justify-content: center; background-color: var(--app-surface-2);">
                                         <img src="${arquivo.download_url}" alt="Miniatura" style="max-width: 100%; max-height: 100%; object-fit: cover; cursor: pointer;" onclick="verImagem('${arquivo.download_url}', '${arquivo.nome_original}')">
                                      </div>`;
                 } else if (arquivo.is_pdf) {
-                    miniaturaHtml = `<i class="bi bi-file-earmark-pdf-fill" style="font-size: 3rem; color: #dc3545;"></i>`; // Ícone PDF vermelho
+                    miniaturaHtml = `<i class="bi bi-file-earmark-pdf-fill" style="font-size: 3rem; color: var(--app-danger);"></i>`; // Ícone PDF vermelho
                 } else {
-                    miniaturaHtml = `<i class="bi ${arquivo.icone}" style="font-size: 3rem; color: #6c757d;"></i>`;
+                    miniaturaHtml = `<i class="bi ${arquivo.icone}" style="font-size: 3rem; color: var(--app-neutral);"></i>`;
                 }
                 
                 let verBotaoHtml = '';
@@ -2669,7 +2536,7 @@ if ($operacao && !isset($error_message)) {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- bootstrap bundle já carregado pelo head.php -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
     
     <script>
@@ -2893,7 +2760,7 @@ if ($operacao && !isset($error_message)) {
                     };
                     const statusDisplay = statusMap[data.status_contrato] || data.status_contrato;
                     statusContratoBadge.textContent = 'Status: ' + statusDisplay;
-                    statusContratoBadge.className = 'badge ' + (data.status_contrato === 'assinado' ? 'bg-success' : 'bg-warning text-dark');
+                    statusContratoBadge.className = 'status-pill ' + (data.status_contrato === 'assinado' ? 's-concluida' : 's-parcial');
                 }
             })
             .catch(error => {

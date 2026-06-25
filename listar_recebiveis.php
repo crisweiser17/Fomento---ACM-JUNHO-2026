@@ -477,12 +477,8 @@ require_once 'head.php';
         .tstat-value { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
         .tstat-meta .tstat-value { font-size: 0.9rem; font-weight: 600; color: var(--neutral); }
 
-        /* Dieta de cor: tipo é categoria, não status — neutro. */
-        .pill-tipo.antecip,
-        .pill-tipo.empr    { background: #eef0f3; color: #5a6470; }
-
-        .status-pill.s-recebido  { background: var(--profit-soft); color: var(--profit); }
-        .status-pill.s-compensado{ background: #eef0f3; color: #5a6470; }
+        /* pill-tipo, status-pill (s-recebido/s-compensado) e .action-btn agora
+           vivem no theme.css (fonte única). Aqui ficam só estilos da tela. */
 
         /* Barra de ações em massa */
         .rec-bulk-bar {
@@ -495,34 +491,6 @@ require_once 'head.php';
             flex-wrap: wrap;
         }
         .rec-bulk-bar .btn-link { text-decoration: none; }
-
-        /* Action button (preservar classe .action-btn pq o JS reinjeta esse HTML) */
-        .action-btn {
-            width: 28px; height: 28px;
-            display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 6px; padding: 0;
-            font-size: 0.85rem; line-height: 1;
-            margin: 0;
-        }
-        .action-btn:not(:last-child) { margin-right: 2px; }
-        /* Dieta de cor: botões de ação em tons suaves (não saturados) para a tabela
-           não virar um mural de quadrados verdes/vermelhos/azuis. A cor semântica
-           continua legível; satura só no hover. Classes Bootstrap preservadas (JS reinjeta). */
-        .action-btn.btn-success,
-        .action-btn.btn-danger,
-        .action-btn.btn-secondary,
-        .action-btn.btn-primary {
-            border-color: transparent;
-            box-shadow: none;
-        }
-        .action-btn.btn-success { background: var(--profit-soft); color: var(--profit); }
-        .action-btn.btn-danger  { background: var(--danger-soft); color: var(--danger); }
-        .action-btn.btn-primary { background: var(--info-soft);   color: var(--info); }
-        .action-btn.btn-secondary { background: #eef0f3; color: #5a6470; }
-        .action-btn.btn-success:hover { background: var(--profit); color: #fff; }
-        .action-btn.btn-danger:hover  { background: var(--danger); color: #fff; }
-        .action-btn.btn-primary:hover { background: var(--info);   color: #fff; }
-        .action-btn.btn-secondary:hover { background: #5a6470; color: #fff; }
 
         /* Coluna de ações sticky à direita */
         .acoes-col {
