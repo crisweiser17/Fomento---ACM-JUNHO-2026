@@ -1,0 +1,730 @@
+/* ============================================================
+ * theme.css — Design System compartilhado (app-wide)
+ * ------------------------------------------------------------
+ * Fonte única de tokens e componentes de UI para todas as telas.
+ * Derivado dos mockups (_mockup_*.html) e do mini-DS sim-* já
+ * existente em style.css. Carregar SEMPRE antes de style.css.
+ *
+ * Convenção de prefixos:
+ *   - Tokens globais: --app-*  (com aliases legados --info/--profit/...)
+ *   - Componentes:    .app-*, .data-table, .status-pill, .kpi-card, etc.
+ *
+ * ------------------------------------------------------------
+ * REGRA DE COR (a cor comunica significado — não decora):
+ *
+ *   VALORES (números R$): neutros (ink) por padrão.
+ *     • verde  = SÓ lucro (profit)                  -> use .val-pos ou .profit
+ *     • vermelho = SÓ negativo (inadimplência/atraso/prejuízo) -> use .val-neg ou .loss
+ *     • em aberto / recebido / volume / total / capital / taxa -> NEUTRO
+ *       (a categoria vem do ícone/pill ao lado, não da cor do número)
+ *
+ *   ÍCONES/TILES DE KPI (.k-icon b-*): por significado
+ *     • b-blue   = informativo (total, em aberto, volume, capital)
+ *     • b-green  = positivo realizado (recebido, lucro)
+ *     • b-warn   = atenção/prazo (vencendo, a vencer, parcial)
+ *     • b-danger = problema (inadimplência, vencido, problemas)
+ *
+ *   Sempre referenciar var(--app-*); não introduzir hex novo.
+ * ========================================================== */
+
+/* ---------- 1. Tokens ---------- */
+:root {
+    /* Paleta semântica */
+    --app-info: #0a4ea8;
+    --app-info-soft: #eef4ff;
+    --app-info-border: #c8dafc;
+    --app-profit: #198754;
+    --app-profit-soft: #d1f0dc;
+    --app-profit-border: #b3e3c4;
+    --app-warn: #b76b00;
+    --app-warn-soft: #fff3d6;
+    --app-warn-border: #f1d999;
+    --app-danger: #b02a37;
+    --app-danger-soft: #fde2e4;
+    --app-danger-border: #f3c2c7;
+    --app-neutral: #6c757d;
+
+    /* Superfícies / bordas */
+    --app-surface: #ffffff;
+    --app-surface-2: #f6f8fb;
+    --app-page-bg: #eef2f7;
+    --app-border: #e3e8ef;
+    --app-ink: #212529;
+
+    /* Gradientes hero */
+    --app-hero-grad: linear-gradient(135deg, #0d3a6e 0%, #1d5fb0 100%);
+    --app-view-grad: linear-gradient(135deg, #0a8754 0%, #15b079 100%);
+
+    /* Raios / sombras / espaçamento */
+    --app-radius-sm: 8px;
+    --app-radius: 12px;
+    --app-radius-lg: 14px;
+    --app-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+    --app-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+    --app-gap: 18px;
+
+    /* Aliases legados (mockups usam --info, --profit, etc.) */
+    --info: var(--app-info);
+    --info-soft: var(--app-info-soft);
+    --profit: var(--app-profit);
+    --profit-soft: var(--app-profit-soft);
+    --warn: var(--app-warn);
+    --warn-soft: var(--app-warn-soft);
+    --danger: var(--app-danger);
+    --danger-soft: var(--app-danger-soft);
+    --neutral: var(--app-neutral);
+    --surface: var(--app-surface);
+    --surface-2: var(--app-surface-2);
+    --border: var(--app-border);
+    --hero-bg-grad: var(--app-hero-grad);
+    --view-grad: var(--app-view-grad);
+}
+
+/* Tema de página padrão (opt-in via <body class="app-page">) */
+body.app-page {
+    background: var(--app-page-bg);
+}
+/* Em telas app-page o .container deixa de ser "cartão branco" e vira só wrapper */
+body.app-page .container,
+body.app-page .container-fluid {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* ---------- 2. Toolbar de página ---------- */
+/* Nome canônico: .page-toolbar (já usado nos mockups e em várias telas).
+   .app-toolbar é alias para markup novo gerado pelos helpers. */
+.page-toolbar,
+.app-toolbar {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius);
+    padding: 14px 18px;
+    margin-bottom: var(--app-gap);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.page-toolbar .toolbar-main,
+.app-toolbar .toolbar-main { min-width: 0; }
+.page-toolbar h1,
+.app-toolbar h1 {
+    font-size: 1.35rem;
+    margin: 0;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.page-toolbar .subtitle,
+.app-toolbar .subtitle {
+    font-size: 0.85rem;
+    color: var(--app-neutral);
+    margin-top: 4px;
+}
+.page-toolbar .toolbar-actions,
+.app-toolbar .toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.id-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--app-info-soft);
+    color: var(--app-info);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+/* ---------- 3. Status pills ---------- */
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+}
+.status-pill.s-aberto    { background: var(--app-info-soft);   color: var(--app-info); }
+.status-pill.s-concluida { background: var(--app-profit-soft); color: var(--app-profit); }
+.status-pill.s-ativo     { background: var(--app-profit-soft); color: var(--app-profit); }
+.status-pill.s-parcial   { background: var(--app-warn-soft);   color: var(--app-warn); }
+.status-pill.s-problema  { background: var(--app-danger-soft); color: var(--app-danger); }
+.status-pill.s-neutro    { background: #eef0f3;                color: var(--app-neutral); }
+
+/* Pills de tipo de operação */
+.pill-tipo {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 600;
+}
+/* Dieta de cor: "tipo" é uma categoria (Antecipação/Empréstimo), não um status —
+   fica neutro em vez de verde/laranja, reduzindo o ruído em cada linha da tabela. */
+.pill-tipo.antecip,
+.pill-tipo.empr { background: #eef0f3; color: #5a6470; }
+
+/* ---------- 4. KPI cards ---------- */
+.kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: var(--app-gap);
+}
+@media (max-width: 992px) { .kpi-strip { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 576px) { .kpi-strip { grid-template-columns: 1fr; } }
+
+.kpi-card {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius);
+    padding: 14px 16px;
+}
+.kpi-card .k-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+}
+/* Dieta de cor: paleta de ícone de KPI apenas semântica
+   (informativo / positivo / atenção / alerta). Roxo e rosa viram aliases
+   do informativo para reduzir o excesso de cores sem quebrar o markup. */
+.kpi-card .k-icon.b-blue   { background: var(--app-info-soft);   color: var(--app-info); }
+.kpi-card .k-icon.b-green  { background: var(--app-profit-soft); color: var(--app-profit); }
+.kpi-card .k-icon.b-warn   { background: var(--app-warn-soft);   color: var(--app-warn); }
+.kpi-card .k-icon.b-danger { background: var(--app-danger-soft); color: var(--app-danger); }
+.kpi-card .k-icon.b-purple { background: var(--app-info-soft);   color: var(--app-info); }
+.kpi-card .k-icon.b-pink   { background: var(--app-info-soft);   color: var(--app-info); }
+.kpi-card .k-label {
+    font-size: 0.72rem;
+    color: var(--app-neutral);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+}
+.kpi-card .k-value { font-size: 1.4rem; font-weight: 700; line-height: 1.1; margin-top: 2px; }
+.kpi-card .k-trend { font-size: 0.78rem; color: var(--app-neutral); margin-top: 4px; }
+.kpi-card .k-trend.up   { color: var(--app-profit); }
+.kpi-card .k-trend.down { color: var(--app-danger); }
+
+/* ---------- 5. Section cards ---------- */
+.section-card {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius-lg);
+    margin-bottom: var(--app-gap);
+    overflow: hidden;
+}
+.section-card .section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--app-border);
+    background: var(--app-surface-2);
+}
+.section-card .section-head .step-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #0d6efd;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+.section-card .section-head h2 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+    flex: 1;
+}
+.section-card .section-head .head-meta { font-size: 0.78rem; color: var(--app-neutral); }
+.section-card .section-body { padding: 18px; }
+.section-card .section-body.p-0 { padding: 0; }
+
+/* Dieta de cor: cabeçalhos numerados das seções unificados em uma cor de marca,
+   em vez de um arco-íris (roxo/rosa/laranja/verde/marrom). As classes .s-* ficam
+   como aliases para não quebrar o markup existente. */
+.section-card.s-recb .section-head .step-num,
+.section-card.s-data .section-head .step-num,
+.section-card.s-cont .section-head .step-num,
+.section-card.s-anex .section-head .step-num,
+.section-card.s-anot .section-head .step-num,
+.section-card.s-flux .section-head .step-num,
+.section-card.s-bank .section-head .step-num { background: #0d6efd; }
+
+/* ---------- 6. Filter bar / chips ---------- */
+.filter-bar {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius);
+    padding: 10px 14px;
+    margin-bottom: var(--app-gap);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.filter-bar .filter-label {
+    font-size: 0.74rem;
+    color: var(--app-neutral);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+}
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--app-surface-2);
+    color: var(--app-neutral);
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--app-border);
+    text-decoration: none;
+    cursor: pointer;
+}
+.filter-chip:hover { color: var(--app-info); }
+.filter-chip.is-active {
+    background: var(--app-info-soft);
+    color: var(--app-info);
+    border-color: var(--app-info-border);
+}
+.filter-chip .x { cursor: pointer; opacity: 0.7; }
+.filter-chip .x:hover { opacity: 1; }
+.filter-chip.btn-clear { border: none; background: transparent; }
+.filter-chip.btn-clear:hover { color: var(--app-danger); }
+
+/* ---------- 7. Data table ---------- */
+.data-table-wrap {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius-lg);
+    overflow: hidden;
+}
+.data-table-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--app-border);
+    background: var(--app-surface-2);
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.data-table-head h3 { margin: 0; font-size: 0.95rem; font-weight: 600; }
+.data-table-head .meta { font-size: 0.78rem; color: var(--app-neutral); }
+
+.data-table {
+    width: 100%;
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+.data-table thead th {
+    background: var(--app-surface-2);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--app-neutral);
+    border-bottom: 1px solid var(--app-border);
+    border-top: none;
+    padding: 10px 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.data-table tbody td {
+    padding: 12px;
+    vertical-align: middle;
+    border-top: 1px solid var(--app-border);
+}
+/* Zebra: linhas alternam branco / cinza claro. Sem cor de fundo por status —
+   urgência/estado vão em pills, não no fundo da linha. */
+.data-table tbody tr:nth-child(odd)  { background: #ffffff; }
+.data-table tbody tr:nth-child(even) { background: #f7f8fa; }
+.data-table tbody tr:hover { background: #eef2f8; }
+.data-table .num { font-variant-numeric: tabular-nums; font-weight: 600; }
+.data-table .profit { color: var(--app-profit); font-weight: 700; }
+.data-table .loss { color: var(--app-danger); font-weight: 700; }
+
+/* Utilitárias de valor (use conforme a REGRA DE COR do topo do arquivo):
+   .val-pos = verde só p/ lucro · .val-neg = vermelho só p/ negativo.
+   Valores neutros não recebem classe (herdam o ink padrão). */
+.val-pos { color: var(--app-profit) !important; }
+.val-neg { color: var(--app-danger) !important; }
+.val-neutral { color: var(--app-ink) !important; }
+.data-table tfoot td {
+    background: var(--app-surface-2);
+    font-weight: 700;
+    border-top: 2px solid var(--app-border);
+    padding: 12px;
+    font-size: 0.85rem;
+}
+
+/* Célula de cliente com avatar */
+.client-cell { display: flex; align-items: center; gap: 10px; }
+.client-cell .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    /* Dieta de cor: avatar único, calmo (tinta da marca) em vez de 4 gradientes. */
+    background: var(--app-info-soft);
+    color: var(--app-info);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+/* Variantes b1–b4 mantidas para compatibilidade de markup, mas unificadas. */
+.client-cell .avatar.b1,
+.client-cell .avatar.b2,
+.client-cell .avatar.b3,
+.client-cell .avatar.b4 { background: var(--app-info-soft); color: var(--app-info); }
+.client-cell .name { font-weight: 600; font-size: 0.92rem; line-height: 1.2; }
+.client-cell .doc  { font-size: 0.76rem; color: var(--app-neutral); }
+
+.mini-contact {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.78rem;
+    color: var(--app-neutral);
+    margin-right: 8px;
+}
+.mini-contact i { font-size: 0.85rem; }
+.mini-contact a { color: var(--app-neutral); text-decoration: none; }
+.mini-contact a:hover { color: var(--app-info); }
+
+/* ---------- 8. Row actions (ícones) ---------- */
+.row-actions { display: inline-flex; gap: 4px; align-items: center; }
+.row-actions .btn-ico,
+.btn-ico {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    color: var(--app-neutral);
+    background: transparent;
+    border: 1px solid transparent;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.row-actions .btn-ico:hover,
+.btn-ico:hover { background: var(--app-surface-2); border-color: var(--app-border); color: var(--app-info); }
+.row-actions .btn-ico.danger:hover,
+.btn-ico.danger:hover { color: var(--app-danger); border-color: var(--app-danger-border); background: var(--app-danger-soft); }
+/* Separador visual antes da ação perigosa */
+.row-actions .ico-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--app-border);
+    margin: 0 2px;
+    display: inline-block;
+}
+
+/* ---------- 9. Paginação ---------- */
+.pagination-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    border-top: 1px solid var(--app-border);
+    background: var(--app-surface-2);
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.pagination-bar .info { font-size: 0.82rem; color: var(--app-neutral); }
+.pagination-bar .pagination { margin: 0; }
+.pagination-bar .page-link {
+    padding: 4px 10px;
+    font-size: 0.82rem;
+    color: var(--app-info);
+    border-color: var(--app-border);
+}
+.pagination-bar .page-item.active .page-link {
+    background: var(--app-info);
+    border-color: var(--app-info);
+    color: #fff;
+}
+
+/* ---------- 10. Info grid (chave/valor em detalhes) ---------- */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 14px 18px;
+}
+.info-cell { grid-column: span 4; }
+.info-cell.col-2  { grid-column: span 2; }
+.info-cell.col-3  { grid-column: span 3; }
+.info-cell.col-4  { grid-column: span 4; }
+.info-cell.col-6  { grid-column: span 6; }
+.info-cell.col-8  { grid-column: span 8; }
+.info-cell.col-12 { grid-column: span 12; }
+.info-cell .info-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--app-neutral);
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+.info-cell .info-value {
+    font-size: 0.95rem;
+    color: var(--app-ink);
+    font-weight: 500;
+    min-height: 22px;
+    word-break: break-word;
+}
+.info-cell .info-value.muted { color: #adb5bd; font-style: italic; font-weight: 400; }
+@media (max-width: 768px) {
+    .info-cell,
+    .info-cell.col-2,
+    .info-cell.col-3,
+    .info-cell.col-4,
+    .info-cell.col-6,
+    .info-cell.col-8 { grid-column: span 12; }
+}
+
+/* ---------- 11. Sticky panel (página de detalhe) ---------- */
+.sticky-panel {
+    position: sticky;
+    top: 16px;
+    border-radius: var(--app-radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--app-border);
+    background: #fff;
+}
+.sticky-panel .panel-head {
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #fff;
+    background: var(--app-hero-grad);
+}
+.sticky-panel .panel-head h3 {
+    font-size: 0.85rem;
+    margin: 0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.92;
+}
+.summary-hero { background: var(--app-hero-grad); color: #fff; padding: 6px 18px 22px; }
+.summary-hero .h-label { font-size: 0.78rem; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.04em; }
+.summary-hero .h-value { font-size: 2.05rem; font-weight: 700; line-height: 1.1; }
+.summary-hero .h-sub { font-size: 0.8rem; opacity: 0.85; margin-top: 4px; }
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 14px;
+    background: var(--app-surface);
+}
+.summary-cell {
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: var(--app-surface-2);
+    border: 1px solid var(--app-border);
+}
+.summary-cell .c-label { font-size: 0.7rem; color: var(--app-neutral); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+.summary-cell .c-value { font-size: 1.05rem; font-weight: 700; margin-top: 2px; }
+.summary-cell.span2 { grid-column: 1 / -1; }
+/* Rótulo de grupo dentro do resumo (Projeção / Realizado) */
+.summary-grid .group-label {
+    grid-column: 1 / -1;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--app-neutral);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 2px 0;
+}
+.summary-grid .group-label.is-realizado {
+    border-top: 1px dashed var(--app-border);
+    padding-top: 12px;
+    margin-top: 4px;
+}
+.summary-cell.profit { background: var(--app-profit-soft); border-color: var(--app-profit-border); }
+.summary-cell.profit .c-value { color: var(--app-profit); }
+.summary-cell.warn { background: var(--app-warn-soft); border-color: var(--app-warn-border); }
+.summary-cell.warn .c-value { color: var(--app-warn); }
+.panel-actions {
+    padding: 14px 16px;
+    border-top: 1px solid var(--app-border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--app-surface);
+}
+.panel-actions .btn { font-weight: 600; }
+.panel-actions .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 991.98px) {
+    .sticky-panel { position: static; margin-top: var(--app-gap); }
+}
+
+/* ---------- 12. Cards auxiliares (anotações / anexos) ---------- */
+.anot-card {
+    background: var(--app-surface-2);
+    border: 1px solid var(--app-border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    position: relative;
+}
+.anot-card .anot-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.78rem;
+    color: var(--app-neutral);
+}
+.anot-card .anot-meta .who { font-weight: 600; color: #495057; }
+.anot-card .anot-text { color: var(--app-ink); }
+
+.anexo-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--app-border);
+    border-radius: 10px;
+    background: var(--app-surface);
+    margin-bottom: 6px;
+}
+.anexo-card .ico {
+    width: 36px;
+    height: 36px;
+    background: var(--app-info-soft);
+    color: var(--app-info);
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.anexo-card .name { font-weight: 600; font-size: 0.88rem; line-height: 1.2; }
+.anexo-card .desc { font-size: 0.75rem; color: var(--app-neutral); }
+
+/* ---------- 13. Empty state ---------- */
+.empty-state {
+    padding: 48px 18px;
+    text-align: center;
+    color: var(--app-neutral);
+}
+.empty-state .empty-ico {
+    font-size: 2.6rem;
+    opacity: 0.4;
+    display: block;
+    margin-bottom: 10px;
+}
+.empty-state .empty-title { font-weight: 600; color: #495057; margin-bottom: 4px; }
+.empty-state .empty-msg { font-size: 0.88rem; margin-bottom: 14px; }
+
+/* ---------- 14. Botões padronizados ---------- */
+/* Hierarquia: primária = btn-primary; secundária = btn-outline-secondary;
+   perigosa = btn-outline-danger (+ data-confirm). Aqui só reforçamos
+   pequenos ajustes de consistência sem sobrescrever o Bootstrap. */
+.btn { font-weight: 500; }
+.app-toolbar .btn,
+.panel-actions .btn { white-space: nowrap; }
+
+/* ---------- 14b. Barra de ações de formulário ---------- */
+/* Padrão: ação primária sempre à direita; cancelar/secundária à esquerda
+   (com .spacer empurrando). Ações perigosas nunca coladas na primária. */
+.form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-top: 16px;
+    margin-top: 8px;
+    border-top: 1px solid var(--app-border);
+}
+.form-actions .spacer { margin-right: auto; }
+
+/* ---------- 15. Toasts ---------- */
+.app-toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1090;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: min(92vw, 380px);
+}
+
+/* ---------- 16. Responsividade de tabelas ---------- */
+/* Colunas marcadas como secundárias somem no mobile para evitar
+   tabela "espremida". Use class="col-optional" no <th> e <td>. */
+@media (max-width: 768px) {
+    .data-table .col-optional { display: none; }
+}
+
+/* ---------- 17. Barra de rodapé ---------- */
+/* Footer fixo discreto com nome do app e data da última atualização. */
+.app-page { padding-bottom: 44px; }
+
+.app-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    background: #212529;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.72rem;
+    line-height: 1;
+    padding: 9px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Largura compartilhada: navbar e footer acompanham o conteúdo (max 1500px). */
+.app-shell-width {
+    max-width: 1500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media (max-width: 576px) {
+    .app-footer { font-size: 0.66rem; }
+}
