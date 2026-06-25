@@ -1,6 +1,6 @@
 {
-    "app_name": "Factoring",
-    "app_version": "5.2 de abril de 2026",
+    "app_name": "FACTOR",
+    "app_version": "5.3 — 25 de junho de 2026",
     "default_taxa_mensal": 5.5,
     "iof_adicional_rate": 0.0038,
     "iof_diaria_rate": 8.2e-5,
