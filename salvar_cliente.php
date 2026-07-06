@@ -112,10 +112,11 @@ $socios = $_POST['socios'] ?? [];
 
 $message = '';
 $messageType = 'danger'; // Padrão para erro
+$temAvisoDocumento = false; // Sinaliza documento(s) em branco/zerado(s)
 
-// Validação básica
-if (empty($empresa) || empty($documentoPrincipal)) {
-    $message = "Razão Social e documento são campos obrigatórios.";
+// Validação básica (Razão Social continua obrigatória; documento é opcional)
+if (empty($empresa)) {
+    $message = "Razão Social é um campo obrigatório.";
     redirectClienteFormComFlash($clienteId, 'error', $message, $_POST);
 }
 
@@ -125,29 +126,31 @@ if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     redirectClienteFormComFlash($clienteId, 'error', $message, $_POST);
 }
 
-// Validação do documento
+// Validação do documento principal (CNPJ).
+// Branco ou só zeros: aceita com aviso. Caso contrário, valida normalmente.
 $expectedLength = 14;
 $documentoTipo = 'CNPJ';
 
-if (strlen($documentoPrincipal) !== $expectedLength) {
-    $message = "{$documentoTipo} deve ter {$expectedLength} dígitos.";
-    redirectClienteFormComFlash($clienteId, 'error', $message, $_POST);
+if (documentoVazioOuZerado($documentoPrincipal)) {
+    $temAvisoDocumento = true;
+} else {
+    if (strlen($documentoPrincipal) !== $expectedLength) {
+        $message = "{$documentoTipo} deve ter {$expectedLength} dígitos.";
+        redirectClienteFormComFlash($clienteId, 'error', $message, $_POST);
+    }
+
+    if ($tipoPessoa === 'JURIDICA' && !validaCNPJ($documentoPrincipal)) {
+        $message = "O CNPJ informado é inválido.";
+        redirectClienteFormComFlash($clienteId, 'error', $message, $_POST);
+    }
 }
 
-if ($tipoPessoa === 'FISICA' && !validaCPF($documentoPrincipal)) {
-    $message = "O CPF informado é inválido.";
-    redirectClienteFormComFlash($clienteId, 'error', $message, $_POST);
-}
-
-if ($tipoPessoa === 'JURIDICA' && !validaCNPJ($documentoPrincipal)) {
-    $message = "O CNPJ informado é inválido.";
-    redirectClienteFormComFlash($clienteId, 'error', $message, $_POST);
-}
-
-// Validação de Representante CPF
+// Validação de Representante CPF (branco/zerado aceita com aviso)
 if (!empty($representante_cpf)) {
     $repCpfLimpo = preg_replace('/\D/', '', $representante_cpf);
-    if (!validaCPF($repCpfLimpo)) {
+    if (documentoVazioOuZerado($repCpfLimpo)) {
+        $temAvisoDocumento = true;
+    } elseif (!validaCPF($repCpfLimpo)) {
         $message = "O CPF do representante é inválido.";
         redirectClienteFormComFlash($clienteId, 'error', $message, $_POST);
     }
@@ -168,19 +171,21 @@ if (!empty($conta_documento)) {
     }
 }
 
-// Validação dos sócios
+// Validação dos sócios (nome obrigatório; CPF branco/zerado aceita com aviso)
 foreach ($socios as $index => $socio) {
-    if (empty($socio['nome']) || empty($socio['cpf'])) {
-        $message = "Nome e CPF são obrigatórios para todos os sócios.";
+    if (empty($socio['nome'])) {
+        $message = "Nome é obrigatório para todos os sócios.";
         redirectClienteFormComFlash($clienteId, 'error', $message, $_POST);
     }
-    
-    $cpfLimpo = preg_replace('/\D/', '', $socio['cpf']);
-    if (strlen($cpfLimpo) !== 11 || !validaCPF($cpfLimpo)) {
+
+    $cpfLimpo = preg_replace('/\D/', '', $socio['cpf'] ?? '');
+    if (documentoVazioOuZerado($cpfLimpo)) {
+        $temAvisoDocumento = true;
+    } elseif (strlen($cpfLimpo) !== 11 || !validaCPF($cpfLimpo)) {
         $message = "CPF do sócio {$socio['nome']} é inválido.";
         redirectClienteFormComFlash($clienteId, 'error', $message, $_POST);
     }
-    
+
     // Atualizar array com CPF limpo
     $socios[$index]['cpf'] = $cpfLimpo;
 }
@@ -342,8 +347,14 @@ try {
     $pdo->commit();
     limparFlashFormularioCliente();
     
-    $message = "Cliente " . ($isEditMode ? "atualizado" : "adicionado") . " com sucesso!";
-    $messageType = "success";
+    if ($temAvisoDocumento) {
+        $message = "Cliente " . ($isEditMode ? "atualizado" : "adicionado")
+            . ", mas com documento(s) em branco ou zerado(s) — o valor jurídico do contrato pode ser afetado.";
+        $messageType = "warning";
+    } else {
+        $message = "Cliente " . ($isEditMode ? "atualizado" : "adicionado") . " com sucesso!";
+        $messageType = "success";
+    }
 
 } catch (PDOException $e) {
     $pdo->rollBack();

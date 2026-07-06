@@ -135,6 +135,15 @@ if (!function_exists('validaCNPJ')) {
     }
 }
 
+// Considera um documento "vazio ou zerado" (branco ou só zeros).
+// Nesses casos o cadastro é aceito com aviso, em vez de bloqueado.
+if (!function_exists('documentoVazioOuZerado')) {
+    function documentoVazioOuZerado($doc) {
+        $limpo = preg_replace('/\D/', '', (string) $doc);
+        return $limpo === '' || preg_match('/^0+$/', $limpo) === 1;
+    }
+}
+
 // Função para validar valor numérico
 if (!function_exists('validarValor')) {
     function validarValor($valor) {

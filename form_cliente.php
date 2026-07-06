@@ -370,12 +370,16 @@ require_once 'head.php';
                                            placeholder="Ex.: ACME Indústria Ltda." required>
                                 </div>
                                 <div class="col-md-5">
-                                    <label class="form-label-strong" for="documento_principal">CNPJ <span class="req">*</span></label>
+                                    <label class="form-label-strong" for="documento_principal">CNPJ</label>
                                     <input type="text" class="form-control" id="documento_principal" name="documento_principal"
                                            value="<?php echo htmlspecialchars($cliente['documento_principal'] ?? ''); ?>"
-                                           placeholder="00.000.000/0000-00" required>
+                                           placeholder="00.000.000/0000-00">
                                     <div class="invalid-feedback" id="documento_principal-feedback"></div>
-                                    <div class="field-hint">Formatação automática enquanto digita.</div>
+                                    <div class="doc-warning small text-warning mt-1" id="documento_principal-warning" hidden>
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                        Sem CNPJ válido o valor jurídico do contrato pode ser afetado.
+                                    </div>
+                                    <div class="field-hint">Opcional. Em branco ou só zeros: o contrato pode ter o valor jurídico afetado.</div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label-strong" for="porte">Porte</label>
@@ -445,11 +449,15 @@ require_once 'head.php';
                                                                value="<?php echo htmlspecialchars($socio['nome']); ?>" required>
                                                     </div>
                                                     <div class="col-12">
-                                                        <label class="form-label-strong">CPF <span class="req">*</span></label>
+                                                        <label class="form-label-strong">CPF</label>
                                                         <input type="text" class="form-control form-control-sm socio-cpf"
                                                                name="socios[<?php echo $index; ?>][cpf]"
-                                                               value="<?php echo htmlspecialchars($socio['cpf']); ?>" required>
+                                                               value="<?php echo htmlspecialchars($socio['cpf']); ?>">
                                                         <div class="invalid-feedback"></div>
+                                                        <div class="doc-warning small text-warning mt-1" hidden>
+                                                            <i class="bi bi-exclamation-triangle-fill"></i>
+                                                            Sem CPF válido o valor jurídico do contrato pode ser afetado.
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <?php if (isset($socio['id'])): ?>
@@ -782,6 +790,12 @@ require_once 'head.php';
             return resultado === parseInt(digitos.charAt(1));
         }
 
+        // Documento "vazio ou zerado" (branco ou só zeros): aceita com aviso.
+        function docVazioOuZerado(str) {
+            const d = (str || '').replace(/\D/g, '');
+            return d === '' || /^0+$/.test(d);
+        }
+
         $(document).ready(function(){
             let socioIndex = <?php echo count($socios); ?>;
 
@@ -851,9 +865,13 @@ require_once 'head.php';
                                     <input type="text" class="form-control form-control-sm socio-nome" name="socios[${socioIndex}][nome]" required>
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label-strong">CPF <span class="req">*</span></label>
-                                    <input type="text" class="form-control form-control-sm socio-cpf" name="socios[${socioIndex}][cpf]" required>
+                                    <label class="form-label-strong">CPF</label>
+                                    <input type="text" class="form-control form-control-sm socio-cpf" name="socios[${socioIndex}][cpf]">
                                     <div class="invalid-feedback"></div>
+                                    <div class="doc-warning small text-warning mt-1" hidden>
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                        Sem CPF válido o valor jurídico do contrato pode ser afetado.
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -995,7 +1013,15 @@ require_once 'head.php';
             });
 
             $('#documento_principal').on('blur', function() {
-                const documento = $(this).val().replace(/\D/g, '');
+                const valor = $(this).val();
+                if (docVazioOuZerado(valor)) {
+                    $(this).removeClass('is-invalid');
+                    $('#documento_principal-feedback').text('');
+                    $('#documento_principal-warning').prop('hidden', false);
+                    return;
+                }
+                $('#documento_principal-warning').prop('hidden', true);
+                const documento = valor.replace(/\D/g, '');
                 let valid = documento.length === 14 && isValidCNPJ(documento);
                 if (!valid) {
                     $(this).addClass('is-invalid');
@@ -1022,16 +1048,31 @@ require_once 'head.php';
                     $('#email').next('.invalid-feedback').remove();
                 }
 
-                const documento = $('#documento_principal').val().replace(/\D/g, '');
-                if (documento.length !== 14 || !isValidCNPJ(documento)) {
-                    $('#documento_principal').addClass('is-invalid');
-                    $('#documento_principal-feedback').text('CNPJ inválido');
-                    isValid = false;
-                } else {
+                const documentoVal = $('#documento_principal').val();
+                if (docVazioOuZerado(documentoVal)) {
                     $('#documento_principal').removeClass('is-invalid');
+                    $('#documento_principal-feedback').text('');
+                    $('#documento_principal-warning').prop('hidden', false);
+                } else {
+                    $('#documento_principal-warning').prop('hidden', true);
+                    const documento = documentoVal.replace(/\D/g, '');
+                    if (documento.length !== 14 || !isValidCNPJ(documento)) {
+                        $('#documento_principal').addClass('is-invalid');
+                        $('#documento_principal-feedback').text('CNPJ inválido');
+                        isValid = false;
+                    } else {
+                        $('#documento_principal').removeClass('is-invalid');
+                    }
                 }
 
                 $('.socio-cpf').each(function() {
+                    const $warning = $(this).siblings('.doc-warning');
+                    if (docVazioOuZerado($(this).val())) {
+                        $(this).removeClass('is-invalid');
+                        $warning.prop('hidden', false);
+                        return;
+                    }
+                    $warning.prop('hidden', true);
                     const cpf = $(this).val().replace(/\D/g, '');
                     if (cpf.length !== 11 || !isValidCPF(cpf)) {
                         $(this).addClass('is-invalid');
@@ -1042,10 +1083,15 @@ require_once 'head.php';
                     }
                 });
 
-                const repCpf = $('#representante_cpf').val().replace(/\D/g, '');
-                if (repCpf && (repCpf.length !== 11 || !isValidCPF(repCpf))) {
-                    $('#representante_cpf').addClass('is-invalid');
-                    isValid = false;
+                const repCpfVal = $('#representante_cpf').val();
+                if (repCpfVal && !docVazioOuZerado(repCpfVal)) {
+                    const repCpf = repCpfVal.replace(/\D/g, '');
+                    if (repCpf.length !== 11 || !isValidCPF(repCpf)) {
+                        $('#representante_cpf').addClass('is-invalid');
+                        isValid = false;
+                    } else {
+                        $('#representante_cpf').removeClass('is-invalid');
+                    }
                 } else {
                     $('#representante_cpf').removeClass('is-invalid');
                 }
