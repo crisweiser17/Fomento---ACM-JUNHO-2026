@@ -1,19 +1,22 @@
 <?php
 /**
- * migrar_dados_online.php
+ * migrar_dados_online.php  (v2 - adaptativo)
  * -----------------------------------------------------------------------------
- * Sobe este arquivo na raiz do sistema (ao lado de db_connection.php) no
- * servidor ONLINE e acesse pela URL com o parametro de confirmacao:
+ * Sobe na raiz do sistema ONLINE (ao lado de db_connection.php) e acesse:
  *
  *     https://SEU-DOMINIO/migrar_dados_online.php?confirmar=SIM
  *
- * O que ele faz:
- *   - Usa o db_connection.php do proprio servidor (credenciais online).
- *   - Insere os dados preservando os IDs originais (mantem as referencias).
- *   - PULA qualquer tabela que JA tenha registros (seguro rodar de novo).
- *   - Insere apenas colunas que existem na tabela de destino (tolera pequenas
- *     diferencas de schema).
- *   - Tudo dentro de uma transacao: se algo falhar, nada e gravado.
+ * O que faz:
+ *   - Usa o db_connection.php do proprio servidor (banco online).
+ *   - NAO toca na tabela usuarios.
+ *   - Cria as tabelas que faltarem (ex.: sacados) sem apagar as existentes.
+ *   - Insere clientes (cedentes), sacados, operacoes e recebiveis.
+ *   - CASA-OU-INSERE: se um cliente/sacado ja existe (mesmo CNPJ/CPF/documento
+ *     ou mesmo nome), reaproveita o registro em vez de duplicar.
+ *   - REMAPEIA os IDs automaticamente, mantendo as ligacoes
+ *     operacao -> cedente e recebivel -> operacao/sacado intactas.
+ *   - Deduplica operacoes (mesma data + mesmos totais) -> seguro rodar de novo.
+ *   - Insere apenas colunas que existem no destino (tolera schema diferente).
  *
  * IMPORTANTE: APAGUE este arquivo do servidor depois de usar.
  * -----------------------------------------------------------------------------
@@ -27,29 +30,156 @@ if (($_GET['confirmar'] ?? '') !== 'SIM') {
 }
 
 require_once __DIR__ . '/db_connection.php'; // $pdo do servidor ONLINE
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$DDL = array (
+  'clientes' => 'CREATE TABLE IF NOT EXISTS `clientes` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `nome` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `telefone` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tipo_pessoa` enum(\'FISICA\',\'JURIDICA\') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT \'FISICA\',
+  `documento_principal` varchar(18) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `documento_secundario` varchar(14) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `cpf` varchar(14) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `cnpj` varchar(18) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `documento_socio` varchar(14) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `empresa` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `endereco` text COLLATE utf8mb4_unicode_ci,
+  `cep` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `logradouro` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `numero` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `complemento` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bairro` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `cidade` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `estado` varchar(2) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `data_cadastro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `banco` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `agencia` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conta` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tipo_conta` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `chave_pix` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `casado` tinyint(1) DEFAULT \'0\',
+  `regime_casamento` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conjuge_nome` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conjuge_cpf` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conjuge_rg` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conjuge_nacionalidade` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conjuge_profissao` varchar(150) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conta_banco` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conta_agencia` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conta_numero` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conta_pix` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conta_tipo` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conta_titular` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `conta_documento` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `whatsapp` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `anotacoes` text COLLATE utf8mb4_unicode_ci,
+  `conta_pix_tipo` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `porte` enum(\'MEI\',\'ME\',\'EPP\',\'MEDIO\',\'GRANDE\',\'PF\') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `representante_nome` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `representante_cpf` varchar(14) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `representante_rg` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `representante_estado_civil` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `representante_profissao` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `representante_nacionalidade` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT \'brasileiro(a)\',
+  `representante_endereco` text COLLATE utf8mb4_unicode_ci,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `cpf` (`cpf`),
+  UNIQUE KEY `cnpj` (`cnpj`),
+  UNIQUE KEY `documento_principal` (`documento_principal`),
+  KEY `idx_nome` (`nome`),
+  KEY `idx_empresa` (`empresa`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+  'sacados' => 'CREATE TABLE IF NOT EXISTS `sacados` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `nome` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `telefone` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tipo_pessoa` enum(\'FISICA\',\'JURIDICA\') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT \'JURIDICA\',
+  `documento_principal` varchar(18) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `documento_secundario` varchar(14) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `cpf` varchar(14) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `cnpj` varchar(18) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `documento_socio` varchar(14) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `empresa` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `endereco` text COLLATE utf8mb4_unicode_ci,
+  `cep` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `logradouro` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `numero` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `complemento` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bairro` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `cidade` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `estado` varchar(2) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `data_cadastro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_documento_principal` (`documento_principal`),
+  UNIQUE KEY `unique_cpf` (`cpf`),
+  UNIQUE KEY `unique_cnpj` (`cnpj`),
+  KEY `idx_nome` (`nome`),
+  KEY `idx_empresa` (`empresa`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+  'operacoes' => 'CREATE TABLE IF NOT EXISTS `operacoes` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `cedente_id` int DEFAULT NULL,
+  `taxa_mensal` decimal(10,4) NOT NULL,
+  `data_operacao` datetime DEFAULT NULL,
+  `data_base_calculo` date DEFAULT NULL,
+  `tipo_pagamento` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT \'direto\',
+  `tipo_operacao` enum(\'antecipacao\',\'emprestimo\') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT \'antecipacao\',
+  `tem_garantia` tinyint(1) NOT NULL DEFAULT \'0\',
+  `descricao_garantia` text COLLATE utf8mb4_unicode_ci,
+  `total_original_calc` decimal(15,2) DEFAULT NULL,
+  `total_presente_calc` decimal(15,2) DEFAULT NULL,
+  `iof_total_calc` decimal(15,2) DEFAULT NULL,
+  `total_liquido_pago_calc` decimal(15,2) DEFAULT NULL,
+  `incorre_custo_iof` tinyint(1) NOT NULL DEFAULT \'0\',
+  `cobrar_iof_cliente` tinyint(1) NOT NULL DEFAULT \'1\',
+  `total_lucro_liquido_calc` decimal(15,2) DEFAULT NULL,
+  `media_dias_pond_calc` int DEFAULT NULL,
+  `notas` text COLLATE utf8mb4_unicode_ci,
+  `valor_total_compensacao` decimal(15,2) DEFAULT \'0.00\',
+  `natureza` enum(\'EMPRESTIMO\',\'DESCONTO\') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT \'DESCONTO\',
+  `valor_principal` decimal(15,2) DEFAULT NULL,
+  `valor_total_devido` decimal(15,2) DEFAULT NULL,
+  `taxa_juros_mensal` decimal(6,4) DEFAULT NULL,
+  `taxa_juros_anual` decimal(6,4) DEFAULT NULL,
+  `cet_mensal` decimal(6,4) DEFAULT NULL,
+  `num_parcelas` int DEFAULT NULL,
+  `valor_parcela` decimal(15,2) DEFAULT NULL,
+  `data_primeiro_vencimento` date DEFAULT NULL,
+  `periodicidade` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT \'mensais\',
+  `taxa_desagio_mensal` decimal(6,4) DEFAULT NULL,
+  `status_contrato` enum(\'pendente\',\'aguardando_assinatura\',\'assinado\') COLLATE utf8mb4_unicode_ci DEFAULT \'pendente\',
+  PRIMARY KEY (`id`),
+  KEY `fk_operacao_cedente` (`cedente_id`),
+  CONSTRAINT `fk_operacoes_cedente` FOREIGN KEY (`cedente_id`) REFERENCES `clientes` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+  'recebiveis' => 'CREATE TABLE IF NOT EXISTS `recebiveis` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `operacao_id` int NOT NULL,
+  `sacado_id` int DEFAULT NULL,
+  `tipo_recebivel` enum(\'cheque\',\'duplicata\',\'nota_promissoria\',\'boleto\',\'fatura\',\'nota_fiscal\',\'parcela_emprestimo\',\'outros\') COLLATE utf8mb4_unicode_ci DEFAULT \'duplicata\',
+  `valor_original` decimal(15,2) NOT NULL,
+  `valor_recebido` decimal(15,2) DEFAULT NULL,
+  `data_vencimento` date NOT NULL,
+  `valor_presente_calc` decimal(15,2) DEFAULT NULL,
+  `iof_calc` decimal(15,2) DEFAULT NULL,
+  `valor_liquido_calc` decimal(15,2) DEFAULT NULL,
+  `dias_prazo_calc` int DEFAULT NULL,
+  `status` enum(\'Em Aberto\',\'Recebido\',\'Problema\',\'Compensado\',\'Parcialmente Compensado\') COLLATE utf8mb4_unicode_ci DEFAULT \'Em Aberto\',
+  `data_recebimento` datetime DEFAULT NULL,
+  `obs_problema` text COLLATE utf8mb4_unicode_ci,
+  PRIMARY KEY (`id`),
+  KEY `idx_operacao_id` (`operacao_id`),
+  KEY `idx_data_vencimento` (`data_vencimento`),
+  KEY `idx_status` (`status`),
+  KEY `idx_sacado_id` (`sacado_id`),
+  CONSTRAINT `fk_recebiveis_sacado` FOREIGN KEY (`sacado_id`) REFERENCES `sacados` (`id`),
+  CONSTRAINT `recebiveis_ibfk_1` FOREIGN KEY (`operacao_id`) REFERENCES `operacoes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+);
 
-/** Dados exportados do banco local: */
 $DADOS = array (
-  'usuarios' => 
-  array (
-    'columns' => 
-    array (
-      0 => 'id',
-      1 => 'email',
-      2 => 'senha_hash',
-      3 => 'criado_em',
-    ),
-    'rows' => 
-    array (
-      0 => 
-      array (
-        'id' => 1,
-        'email' => 'admin',
-        'senha_hash' => '$2y$12$JmnoDCKqr9K4tGJdOvWtVu816ONVe3nJSOqVOxIK6eAFkDbD7cmK6',
-        'criado_em' => '2026-06-23 16:33:56',
-      ),
-    ),
-  ),
   'clientes' => 
   array (
     'columns' => 
@@ -531,100 +661,6 @@ $DADOS = array (
         'cidade' => NULL,
         'estado' => NULL,
         'data_cadastro' => '2026-07-08 10:32:13',
-      ),
-    ),
-  ),
-  'leads' => 
-  array (
-    'columns' => 
-    array (
-      0 => 'id',
-      1 => 'empresa',
-      2 => 'nome_contato',
-      3 => 'telefone',
-      4 => 'origem',
-      5 => 'estagio',
-      6 => 'responsavel_id',
-      7 => 'cliente_id',
-      8 => 'data_visita_agendada',
-      9 => 'motivo_perda',
-      10 => 'observacoes',
-      11 => 'data_cadastro',
-      12 => 'data_atualizacao',
-    ),
-    'rows' => 
-    array (
-      0 => 
-      array (
-        'id' => 1,
-        'empresa' => 'X',
-        'nome_contato' => 'XX',
-        'telefone' => '',
-        'origem' => 'receptivo',
-        'estagio' => 'visita_agendada',
-        'responsavel_id' => NULL,
-        'cliente_id' => NULL,
-        'data_visita_agendada' => NULL,
-        'motivo_perda' => NULL,
-        'observacoes' => '',
-        'data_cadastro' => '2026-06-25 16:56:36',
-        'data_atualizacao' => '2026-06-25 16:56:49',
-      ),
-    ),
-  ),
-  'leads_historico' => 
-  array (
-    'columns' => 
-    array (
-      0 => 'id',
-      1 => 'lead_id',
-      2 => 'estagio_de',
-      3 => 'estagio_para',
-      4 => 'usuario_id',
-      5 => 'observacao',
-      6 => 'data_evento',
-    ),
-    'rows' => 
-    array (
-      0 => 
-      array (
-        'id' => 1,
-        'lead_id' => 1,
-        'estagio_de' => NULL,
-        'estagio_para' => 'novo',
-        'usuario_id' => 1,
-        'observacao' => 'Lead criado',
-        'data_evento' => '2026-06-25 16:56:36',
-      ),
-      1 => 
-      array (
-        'id' => 2,
-        'lead_id' => 1,
-        'estagio_de' => 'novo',
-        'estagio_para' => 'visita_agendada',
-        'usuario_id' => 1,
-        'observacao' => NULL,
-        'data_evento' => '2026-06-25 16:56:48',
-      ),
-      2 => 
-      array (
-        'id' => 3,
-        'lead_id' => 1,
-        'estagio_de' => 'visita_agendada',
-        'estagio_para' => 'visita_feita',
-        'usuario_id' => 1,
-        'observacao' => NULL,
-        'data_evento' => '2026-06-25 16:56:49',
-      ),
-      3 => 
-      array (
-        'id' => 4,
-        'lead_id' => 1,
-        'estagio_de' => 'visita_feita',
-        'estagio_para' => 'visita_agendada',
-        'usuario_id' => 1,
-        'observacao' => NULL,
-        'data_evento' => '2026-06-25 16:56:49',
       ),
     ),
   ),
@@ -1305,60 +1341,145 @@ $DADOS = array (
   ),
 );
 
-// ----------------------------------------------------------------------------
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$relatorio = [];
+/** Colunas reais da tabela de destino (cache). */
+function colunasDestino(PDO $pdo, string $tabela): array {
+    static $cache = [];
+    if (isset($cache[$tabela])) { return $cache[$tabela]; }
+    $cols = [];
+    foreach ($pdo->query("DESCRIBE `$tabela`") as $c) { $cols[$c['Field']] = true; }
+    return $cache[$tabela] = $cols;
+}
+
+/** Insere uma linha (sem o id), retornando o novo id gerado. */
+function inserirLinha(PDO $pdo, string $tabela, array $row): string {
+    $destino = colunasDestino($pdo, $tabela);
+    $cols = [];
+    foreach ($row as $c => $_) {
+        if ($c === 'id') { continue; }
+        if (isset($destino[$c])) { $cols[] = $c; }
+    }
+    $lista = '`' . implode('`, `', $cols) . '`';
+    $ph    = implode(', ', array_fill(0, count($cols), '?'));
+    $stmt  = $pdo->prepare("INSERT INTO `$tabela` ($lista) VALUES ($ph)");
+    $vals  = array_map(fn($c) => $row[$c] ?? null, $cols);
+    $stmt->execute($vals);
+    return $pdo->lastInsertId();
+}
+
+/** Procura registro existente por chaves naturais. Retorna id ou null. */
+function acharExistente(PDO $pdo, string $tabela, array $row, array $chaves): ?string {
+    $destino = colunasDestino($pdo, $tabela);
+    foreach ($chaves as $col) {
+        if (!isset($destino[$col])) { continue; }
+        $val = $row[$col] ?? null;
+        if ($val === null || $val === '') { continue; }
+        $stmt = $pdo->prepare("SELECT id FROM `$tabela` WHERE `$col` = ? LIMIT 1");
+        $stmt->execute([$val]);
+        $id = $stmt->fetchColumn();
+        if ($id !== false) { return (string)$id; }
+    }
+    return null;
+}
+
+$rel = [];
 
 try {
     $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+
+    // --- 1) Criar tabelas que faltam (DDL causa commit implicito -> fora da transacao)
+    foreach (['clientes', 'sacados', 'operacoes', 'recebiveis'] as $t) {
+        $existe = $pdo->query("SHOW TABLES LIKE " . $pdo->quote($t))->fetchColumn();
+        if ($existe) {
+            $rel[] = sprintf('tabela %-11s ja existe', $t);
+        } else {
+            $pdo->exec($DDL[$t]);
+            $rel[] = sprintf('tabela %-11s CRIADA', $t);
+        }
+    }
+
+    // --- 2) Inserir dados dentro de uma transacao
     $pdo->beginTransaction();
 
-    foreach ($DADOS as $tabela => $info) {
-        // Ja tem dados? Pula por seguranca.
-        $existentes = (int) $pdo->query("SELECT COUNT(*) FROM `$tabela`")->fetchColumn();
-        if ($existentes > 0) {
-            $relatorio[] = sprintf('PULADO  %-18s (ja possui %d registros)', $tabela, $existentes);
-            continue;
-        }
+    $mapCliente = [];  // id_local => id_online
+    $mapSacado  = [];
+    $mapOperacao = []; // id_local => ['id'=>id_online, 'novo'=>bool]
 
-        // Colunas reais da tabela de destino (intersecao com as exportadas)
-        $colsDestino = [];
-        foreach ($pdo->query("DESCRIBE `$tabela`") as $c) { $colsDestino[$c['Field']] = true; }
-        $cols = array_values(array_filter($info['columns'], fn($c) => isset($colsDestino[$c])));
-
-        if (empty($cols)) {
-            $relatorio[] = sprintf('ERRO    %-18s (nenhuma coluna compativel)', $tabela);
-            continue;
-        }
-
-        $lista       = '`' . implode('`, `', $cols) . '`';
-        $placeholders = implode(', ', array_fill(0, count($cols), '?'));
-        $stmt = $pdo->prepare("INSERT INTO `$tabela` ($lista) VALUES ($placeholders)");
-
-        $n = 0;
-        foreach ($info['rows'] as $row) {
-            $valores = [];
-            foreach ($cols as $c) { $valores[] = $row[$c] ?? null; }
-            $stmt->execute($valores);
-            $n++;
-        }
-        $relatorio[] = sprintf('OK      %-18s %d registros inseridos', $tabela, $n);
+    // Clientes (cedentes)
+    $ci = 0; $cm = 0;
+    foreach ($DADOS['clientes']['rows'] as $row) {
+        $achado = acharExistente($pdo, 'clientes', $row, ['cnpj', 'cpf', 'documento_principal', 'nome']);
+        if ($achado !== null) { $mapCliente[$row['id']] = $achado; $cm++; }
+        else { $mapCliente[$row['id']] = inserirLinha($pdo, 'clientes', $row); $ci++; }
     }
+    $rel[] = sprintf('clientes    -> %d inseridos, %d ja existiam', $ci, $cm);
+
+    // Sacados
+    $si = 0; $sm = 0;
+    foreach ($DADOS['sacados']['rows'] as $row) {
+        $achado = acharExistente($pdo, 'sacados', $row, ['cnpj', 'cpf', 'documento_principal', 'nome']);
+        if ($achado !== null) { $mapSacado[$row['id']] = $achado; $sm++; }
+        else { $mapSacado[$row['id']] = inserirLinha($pdo, 'sacados', $row); $si++; }
+    }
+    $rel[] = sprintf('sacados     -> %d inseridos, %d ja existiam', $si, $sm);
+
+    // Operacoes (dedup por data + totais)
+    $destOp = colunasDestino($pdo, 'operacoes');
+    $sigCols = array_values(array_filter(
+        ['data_operacao', 'total_original_calc', 'total_liquido_pago_calc'],
+        fn($c) => isset($destOp[$c])
+    ));
+    $oi = 0; $od = 0;
+    foreach ($DADOS['operacoes']['rows'] as $row) {
+        // remapeia cedente
+        if (isset($row['cedente_id']) && $row['cedente_id'] !== null && isset($mapCliente[$row['cedente_id']])) {
+            $row['cedente_id'] = $mapCliente[$row['cedente_id']];
+        }
+        // dedup
+        $existente = null;
+        if ($sigCols) {
+            $where = implode(' AND ', array_map(fn($c) => "`$c` <=> ?", $sigCols));
+            $stmt = $pdo->prepare("SELECT id FROM `operacoes` WHERE $where LIMIT 1");
+            $stmt->execute(array_map(fn($c) => $row[$c] ?? null, $sigCols));
+            $hit = $stmt->fetchColumn();
+            if ($hit !== false) { $existente = (string)$hit; }
+        }
+        if ($existente !== null) {
+            $mapOperacao[$row['id']] = ['id' => $existente, 'novo' => false];
+            $od++;
+        } else {
+            $novoId = inserirLinha($pdo, 'operacoes', $row);
+            $mapOperacao[$row['id']] = ['id' => $novoId, 'novo' => true];
+            $oi++;
+        }
+    }
+    $rel[] = sprintf('operacoes   -> %d inseridas, %d ja existiam (puladas)', $oi, $od);
+
+    // Recebiveis (apenas das operacoes recem-inseridas)
+    $ri = 0; $rp = 0;
+    foreach ($DADOS['recebiveis']['rows'] as $row) {
+        $op = $mapOperacao[$row['operacao_id']] ?? null;
+        if ($op === null || !$op['novo']) { $rp++; continue; }
+        $row['operacao_id'] = $op['id'];
+        if (isset($row['sacado_id']) && $row['sacado_id'] !== null && isset($mapSacado[$row['sacado_id']])) {
+            $row['sacado_id'] = $mapSacado[$row['sacado_id']];
+        }
+        inserirLinha($pdo, 'recebiveis', $row);
+        $ri++;
+    }
+    $rel[] = sprintf('recebiveis  -> %d inseridos, %d pulados (operacao ja existia)', $ri, $rp);
 
     $pdo->commit();
     $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
 
-    echo "MIGRACAO CONCLUIDA COM SUCESSO\n";
-    echo str_repeat('-', 50) . "\n";
-    echo implode("\n", $relatorio) . "\n";
-    echo str_repeat('-', 50) . "\n";
+    echo "MIGRACAO CONCLUIDA COM SUCESSO\n" . str_repeat('-', 52) . "\n";
+    echo implode("\n", $rel) . "\n" . str_repeat('-', 52) . "\n";
     echo "APAGUE este arquivo do servidor agora.\n";
 
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) { $pdo->rollBack(); }
-    $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+    try { $pdo->exec('SET FOREIGN_KEY_CHECKS = 1'); } catch (Throwable $x) {}
     http_response_code(500);
-    echo "FALHA NA MIGRACAO - nada foi gravado (rollback).\n";
+    echo "FALHA NA MIGRACAO - dados revertidos (rollback).\n";
     echo 'Erro: ' . $e->getMessage() . "\n";
-    if ($relatorio) { echo "\nProgresso antes da falha:\n" . implode("\n", $relatorio) . "\n"; }
+    if ($rel) { echo "\nProgresso antes da falha:\n" . implode("\n", $rel) . "\n"; }
 }
