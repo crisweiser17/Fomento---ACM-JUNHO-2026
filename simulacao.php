@@ -29,7 +29,11 @@ $clientes = [];
 $erro_clientes = null;
 
 try {
-    $stmt = $pdo->query("SELECT id, empresa as nome, documento_principal FROM clientes ORDER BY empresa ASC");
+    // COALESCE: pessoa física não tem `empresa` preenchido e ficaria sem nome na lista.
+    $stmt = $pdo->query(
+        "SELECT id, COALESCE(empresa, nome) AS nome, documento_principal
+           FROM clientes ORDER BY COALESCE(empresa, nome) ASC"
+    );
     $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Erro ao buscar Clientes no DB: " . $e->getMessage());

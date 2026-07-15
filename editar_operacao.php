@@ -48,7 +48,7 @@ try {
     // Buscar recebíveis da operação
     $sql_rec = "SELECT r.*, COALESCE(s.empresa, s.nome) AS sacado_nome
                 FROM recebiveis r
-                LEFT JOIN sacados s ON r.sacado_id = s.id
+                LEFT JOIN clientes s ON r.sacado_id = s.id
                 WHERE r.operacao_id = :operacao_id
                 ORDER BY r.data_vencimento ASC";
     $stmt_rec = $pdo->prepare($sql_rec);
@@ -56,9 +56,9 @@ try {
     $stmt_rec->execute();
     $recebiveis = $stmt_rec->fetchAll(PDO::FETCH_ASSOC);
 
-    // Buscar lista de sacados para os selects
+    // Cadastro único: qualquer cliente pode ser cedente e/ou sacado.
     $stmt_sacados = $pdo->query(
-        "SELECT id, COALESCE(empresa, nome) AS nome FROM sacados ORDER BY COALESCE(empresa, nome) ASC"
+        "SELECT id, COALESCE(empresa, nome) AS nome FROM clientes ORDER BY COALESCE(empresa, nome) ASC"
     );
     $sacados = $stmt_sacados->fetchAll(PDO::FETCH_ASSOC);
     

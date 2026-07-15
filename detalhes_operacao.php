@@ -165,7 +165,7 @@ $chartDataRaw = []; // Armazena todos os pontos de dados por mês/tipo
 
 if ($operacao && !isset($error_message)) {
     try {
-        $sql_rec = "SELECT r.*, s.empresa as sacado_nome, r.sacado_id, s.representante_estado_civil as sacado_representante_estado_civil
+        $sql_rec = "SELECT r.*, COALESCE(s.empresa, s.nome) as sacado_nome, r.sacado_id, s.representante_estado_civil as sacado_representante_estado_civil
                    FROM recebiveis r
                    LEFT JOIN clientes s ON r.sacado_id = s.id
                    WHERE r.operacao_id = :operacao_id
