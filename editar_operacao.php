@@ -1,6 +1,19 @@
 <?php
 require_once 'auth_check.php';
 require_once 'db_connection.php';
+require_once 'funcoes_recalculo.php';
+
+// Tipos aceitos pela coluna recebiveis.tipo_recebivel
+const TIPOS_RECEBIVEL_VALIDOS = [
+    'duplicata',
+    'cheque',
+    'nota_promissoria',
+    'boleto',
+    'fatura',
+    'nota_fiscal',
+    'parcela_emprestimo',
+    'outros',
+];
 
 // Validar ID da operação
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
@@ -33,18 +46,20 @@ try {
     }
     
     // Buscar recebíveis da operação
-    $sql_rec = "SELECT r.*, s.empresa as sacado_nome 
-                FROM recebiveis r 
-                LEFT JOIN clientes s ON r.sacado_id = s.id 
-                WHERE r.operacao_id = :operacao_id 
+    $sql_rec = "SELECT r.*, COALESCE(s.empresa, s.nome) AS sacado_nome
+                FROM recebiveis r
+                LEFT JOIN sacados s ON r.sacado_id = s.id
+                WHERE r.operacao_id = :operacao_id
                 ORDER BY r.data_vencimento ASC";
     $stmt_rec = $pdo->prepare($sql_rec);
     $stmt_rec->bindParam(':operacao_id', $operacao_id, PDO::PARAM_INT);
     $stmt_rec->execute();
     $recebiveis = $stmt_rec->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Buscar lista de sacados para os selects
-    $stmt_sacados = $pdo->query("SELECT id, empresa as nome FROM clientes ORDER BY empresa ASC");
+    $stmt_sacados = $pdo->query(
+        "SELECT id, COALESCE(empresa, nome) AS nome FROM sacados ORDER BY COALESCE(empresa, nome) ASC"
+    );
     $sacados = $stmt_sacados->fetchAll(PDO::FETCH_ASSOC);
     
 } catch (PDOException $e) {
@@ -86,10 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST['recebivel_tipo']) && is_array($_POST['recebivel_tipo'])) {
             foreach ($_POST['recebivel_tipo'] as $recebivel_id => $tipo_recebivel) {
                 $tipo_recebivel = trim($tipo_recebivel);
-                if (!in_array($tipo_recebivel, ['duplicata', 'cheque', 'nota_promissoria', 'boleto', 'fatura', 'nota_fiscal', 'outros'])) {
+                if (!in_array($tipo_recebivel, TIPOS_RECEBIVEL_VALIDOS, true)) {
                     $tipo_recebivel = 'fatura'; // Default
                 }
-                
+
                 $sql_update_tipo = "UPDATE recebiveis SET tipo_recebivel = :tipo_recebivel WHERE id = :recebivel_id AND operacao_id = :operacao_id";
                 $stmt_update_tipo = $pdo->prepare($sql_update_tipo);
                 $stmt_update_tipo->bindParam(':tipo_recebivel', $tipo_recebivel, PDO::PARAM_STR);
@@ -98,14 +113,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt_update_tipo->execute();
             }
         }
-        
+
+        // Atualizar valor e vencimento dos títulos.
+        // Percorre os recebíveis vindos do banco (não do POST) para garantir que
+        // só títulos desta operação sejam alterados.
+        $data_operacao = new DateTime($operacao['data_operacao']);
+        $data_operacao->setTime(0, 0, 0);
+
+        $valores_post     = $_POST['recebivel_valor'] ?? [];
+        $vencimentos_post = $_POST['recebivel_vencimento'] ?? [];
+
+        $sql_update_titulo = "UPDATE recebiveis SET valor_original = :valor, data_vencimento = :vencimento
+                              WHERE id = :recebivel_id AND operacao_id = :operacao_id";
+        $stmt_update_titulo = $pdo->prepare($sql_update_titulo);
+
+        foreach ($recebiveis as $recebivel) {
+            $recebivel_id = (int) $recebivel['id'];
+            if (!isset($valores_post[$recebivel_id], $vencimentos_post[$recebivel_id])) {
+                continue;
+            }
+
+            $valor = filter_var($valores_post[$recebivel_id], FILTER_VALIDATE_FLOAT);
+            if ($valor === false || $valor <= 0) {
+                throw new InvalidArgumentException(
+                    "Valor inválido no título #{$recebivel_id}. Informe um valor maior que zero."
+                );
+            }
+
+            $vencimento = DateTime::createFromFormat('Y-m-d', trim($vencimentos_post[$recebivel_id]));
+            if ($vencimento === false) {
+                throw new InvalidArgumentException("Vencimento inválido no título #{$recebivel_id}.");
+            }
+            $vencimento->setTime(0, 0, 0);
+
+            if ($vencimento < $data_operacao) {
+                throw new InvalidArgumentException(
+                    "O vencimento do título #{$recebivel_id} (" . $vencimento->format('d/m/Y') . ") é anterior "
+                    . "à data da operação (" . $data_operacao->format('d/m/Y') . ")."
+                );
+            }
+
+            $stmt_update_titulo->execute([
+                ':valor'        => $valor,
+                ':vencimento'   => $vencimento->format('Y-m-d'),
+                ':recebivel_id' => $recebivel_id,
+                ':operacao_id'  => $operacao_id,
+            ]);
+        }
+
+        // Valores/vencimentos mudaram: refaz VP, IOF, líquido, dias e os totais.
+        recalcularOperacaoPersistida($pdo, $operacao_id);
+
         $pdo->commit();
         header("Location: detalhes_operacao.php?id=$operacao_id&status=updated");
         exit;
-        
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        $error_message = "Erro ao atualizar operação: " . htmlspecialchars($e->getMessage());
+
+    } catch (InvalidArgumentException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $error_message = htmlspecialchars($e->getMessage());
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Erro ao atualizar operação {$operacao_id}: " . $e->getMessage());
+        $error_message = "Erro ao atualizar a operação. Nenhuma alteração foi salva.";
     }
 }
 ?>
@@ -203,12 +276,20 @@ require_once 'head.php';
 
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0">Sacados dos Títulos</h5>
+                        <h5 class="mb-0">Títulos da Operação</h5>
                     </div>
                     <div class="card-body">
                         <?php if (empty($recebiveis)): ?>
                             <div class="alert alert-info">Nenhum recebível encontrado para esta operação.</div>
                         <?php else: ?>
+                            <div class="alert alert-warning d-flex align-items-center">
+                                <i class="bi bi-calculator me-2"></i>
+                                <div>
+                                    Alterar <strong>valor</strong> ou <strong>vencimento</strong> recalcula automaticamente
+                                    o valor presente, IOF, líquido, prazo e os totais da operação
+                                    (taxa de <?php echo number_format(((float)$operacao['taxa_mensal']) * 100, 2, ',', '.'); ?>% a.m.).
+                                </div>
+                            </div>
                             <div class="table-responsive">
                                 <table class="table table-bordered">
                                     <thead class="table-light">
@@ -224,8 +305,23 @@ require_once 'head.php';
                                         <?php foreach ($recebiveis as $recebivel): ?>
                                             <tr>
                                                 <td><?php echo htmlspecialchars($recebivel['id']); ?></td>
-                                                <td><?php echo htmlspecialchars(date('d/m/Y', strtotime($recebivel['data_vencimento']))); ?></td>
-                                                <td>R$ <?php echo number_format($recebivel['valor_original'], 2, ',', '.'); ?></td>
+                                                <td>
+                                                    <input type="date"
+                                                           name="recebivel_vencimento[<?php echo $recebivel['id']; ?>]"
+                                                           value="<?php echo htmlspecialchars($recebivel['data_vencimento']); ?>"
+                                                           min="<?php echo htmlspecialchars(date('Y-m-d', strtotime($operacao['data_operacao']))); ?>"
+                                                           class="form-control" required>
+                                                </td>
+                                                <td>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">R$</span>
+                                                        <input type="number"
+                                                               name="recebivel_valor[<?php echo $recebivel['id']; ?>]"
+                                                               value="<?php echo htmlspecialchars(number_format((float)$recebivel['valor_original'], 2, '.', '')); ?>"
+                                                               step="0.01" min="0.01"
+                                                               class="form-control" required>
+                                                    </div>
+                                                </td>
                                                 <td>
                                                     <select name="recebivel_sacado[<?php echo $recebivel['id']; ?>]" class="form-select">
                                                         <option value="">-- Selecione Sacado --</option>
@@ -245,6 +341,7 @@ require_once 'head.php';
                                                         <option value="boleto" <?php echo (($recebivel['tipo_recebivel'] ?? '') == 'boleto') ? 'selected' : ''; ?>>Boleto</option>
                                                         <option value="fatura" <?php echo (($recebivel['tipo_recebivel'] ?? '') == 'fatura') ? 'selected' : ''; ?>>Fatura</option>
                                                         <option value="nota_fiscal" <?php echo (($recebivel['tipo_recebivel'] ?? '') == 'nota_fiscal') ? 'selected' : ''; ?>>Nota Fiscal</option>
+                                                        <option value="parcela_emprestimo" <?php echo (($recebivel['tipo_recebivel'] ?? '') == 'parcela_emprestimo') ? 'selected' : ''; ?>>Parcela de Empréstimo</option>
                                                         <option value="outros" <?php echo (($recebivel['tipo_recebivel'] ?? '') == 'outros') ? 'selected' : ''; ?>>Outros</option>
                                                     </select>
                                                 </td>
