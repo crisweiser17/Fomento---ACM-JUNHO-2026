@@ -1,16 +1,8 @@
 <?php
 // processa_login.php - CORRIGIDO PARA CLOUDWAYS/NGINX E BANCO DE DADOS
-if (session_status() === PHP_SESSION_NONE) {
-    // Configurações específicas para Cloudways ANTES de session_start
-    ini_set('session.gc_maxlifetime', 86400); // 24 horas
-    ini_set('session.gc_probability', 0); // Desabilitar GC automático
-    ini_set('session.cookie_lifetime', 86400); // 24 horas
-    ini_set('session.cookie_secure', 0);
-    ini_set('session.cookie_httponly', 1);
-    ini_set('session.use_only_cookies', 1);
-    
-    session_start();
-}
+// Bootstrap único de sessão, compartilhado com auth_check.php e login.php.
+require_once __DIR__ . '/auth_session.php';
+enviarCabecalhosSemCache();
 
 require_once 'db_connection.php'; // Inclui conexão com o banco
 

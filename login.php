@@ -1,9 +1,14 @@
 <?php
 // login.php
-// Inicia a sessão para poder exibir mensagens de erro, se houver
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Bootstrap único de sessão (o mesmo de auth_check/processa_login). Antes daqui
+// o login iniciava a sessão com os padrões do PHP e podia coletar sessões que o
+// resto do sistema considerava válidas, invalidando o token CSRF.
+require_once __DIR__ . '/auth_session.php';
+
+// O formulário carrega um token CSRF: não pode ser cacheado por proxy (Varnish
+// na Cloudways) nem pelo navegador, senão reentrega um token velho e todo login
+// falha com "Sessão expirada ou requisição inválida".
+enviarCabecalhosSemCache();
 
 // Se o usuário já está logado, redireciona para a página principal
 if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true) {

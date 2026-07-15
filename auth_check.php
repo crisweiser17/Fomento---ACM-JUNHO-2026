@@ -1,31 +1,9 @@
 <?php
 // auth_check.php
 
-// --- Timezone global do sistema (configurável em config.json) ---
-// Carregado aqui pois auth_check é o primeiro require de toda página e dos scripts CLI.
-require_once __DIR__ . '/timezones.php';
-$authTzConfigPath = __DIR__ . '/config.json';
-$authConfiguredTz = null;
-if (file_exists($authTzConfigPath)) {
-    $authCfg = json_decode(file_get_contents($authTzConfigPath), true);
-    if (is_array($authCfg) && isset($authCfg['timezone'])) {
-        $authConfiguredTz = (string) $authCfg['timezone'];
-    }
-}
-date_default_timezone_set(resolveTimezone($authConfiguredTz));
-
-// Inicia a sessão se ainda não foi iniciada
-if (session_status() === PHP_SESSION_NONE) {
-    // Configurações idênticas ao processa_login.php
-    ini_set('session.gc_maxlifetime', 86400); // 24 horas
-    ini_set('session.gc_probability', 0); // Desabilitar GC automático
-    ini_set('session.cookie_lifetime', 86400); // 24 horas
-    ini_set('session.cookie_secure', 0);
-    ini_set('session.cookie_httponly', 1);
-    ini_set('session.use_only_cookies', 1);
-    
-    session_start();
-}
+// Timezone + sessão: bootstrap único, compartilhado com login.php e
+// processa_login.php (configurações divergentes derrubavam o token CSRF).
+require_once __DIR__ . '/auth_session.php';
 
 // Ignora verificação de autenticação para CLI e recursos estáticos
 $skip_auth = false;
