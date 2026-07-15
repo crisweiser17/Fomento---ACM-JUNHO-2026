@@ -1,6 +1,6 @@
 <?php
 /**
- * migrar_dados_online.php  (v2 - adaptativo)
+ * migrar_dados_online.php  (v3 - modelo unificado)
  * -----------------------------------------------------------------------------
  * Sobe na raiz do sistema ONLINE (ao lado de db_connection.php) e acesse:
  *
@@ -9,14 +9,14 @@
  * O que faz:
  *   - Usa o db_connection.php do proprio servidor (banco online).
  *   - NAO toca na tabela usuarios.
- *   - Cria as tabelas que faltarem (ex.: sacados) sem apagar as existentes.
- *   - Insere clientes (cedentes), sacados, operacoes e recebiveis.
- *   - CASA-OU-INSERE: se um cliente/sacado ja existe (mesmo CNPJ/CPF/documento
- *     ou mesmo nome), reaproveita o registro em vez de duplicar.
- *   - REMAPEIA os IDs automaticamente, mantendo as ligacoes
- *     operacao -> cedente e recebivel -> operacao/sacado intactas.
- *   - Deduplica operacoes (mesma data + mesmos totais) -> seguro rodar de novo.
- *   - Insere apenas colunas que existem no destino (tolera schema diferente).
+ *   - Cria as tabelas que faltarem, sem apagar as existentes.
+ *   - Insere clientes, operacoes e recebiveis.
+ *   - CADASTRO UNIFICADO: sacado_id aponta para `clientes` (um cliente pode ser
+ *     cedente e/ou sacado). A tabela `sacados` nao e mais usada.
+ *   - CASA-OU-INSERE clientes (mesmo CNPJ/CPF/documento/nome) em vez de duplicar.
+ *   - REMAPEIA os IDs automaticamente, mantendo operacao -> cedente e
+ *     recebivel -> operacao/sacado intactos.
+ *   - Deduplica operacoes (mesma data + totais) -> seguro rodar de novo.
  *
  * IMPORTANTE: APAGUE este arquivo do servidor depois de usar.
  * -----------------------------------------------------------------------------
@@ -89,45 +89,17 @@ $DDL = array (
   UNIQUE KEY `documento_principal` (`documento_principal`),
   KEY `idx_nome` (`nome`),
   KEY `idx_empresa` (`empresa`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
-  'sacados' => 'CREATE TABLE IF NOT EXISTS `sacados` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `nome` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `telefone` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `tipo_pessoa` enum(\'FISICA\',\'JURIDICA\') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT \'JURIDICA\',
-  `documento_principal` varchar(18) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `documento_secundario` varchar(14) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `cpf` varchar(14) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `cnpj` varchar(18) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `documento_socio` varchar(14) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `empresa` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `endereco` text COLLATE utf8mb4_unicode_ci,
-  `cep` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `logradouro` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `numero` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `complemento` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `bairro` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `cidade` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `estado` varchar(2) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `data_cadastro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_documento_principal` (`documento_principal`),
-  UNIQUE KEY `unique_cpf` (`cpf`),
-  UNIQUE KEY `unique_cnpj` (`cnpj`),
-  KEY `idx_nome` (`nome`),
-  KEY `idx_empresa` (`empresa`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
   'operacoes' => 'CREATE TABLE IF NOT EXISTS `operacoes` (
   `id` int NOT NULL AUTO_INCREMENT,
   `cedente_id` int DEFAULT NULL,
   `taxa_mensal` decimal(10,4) NOT NULL,
   `data_operacao` datetime DEFAULT NULL,
   `data_base_calculo` date DEFAULT NULL,
-  `tipo_pagamento` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT \'direto\',
-  `tipo_operacao` enum(\'antecipacao\',\'emprestimo\') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT \'antecipacao\',
+  `tipo_pagamento` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT \'direto\',
+  `tipo_operacao` enum(\'antecipacao\',\'emprestimo\') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT \'antecipacao\',
   `tem_garantia` tinyint(1) NOT NULL DEFAULT \'0\',
-  `descricao_garantia` text COLLATE utf8mb4_unicode_ci,
+  `descricao_garantia` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `total_original_calc` decimal(15,2) DEFAULT NULL,
   `total_presente_calc` decimal(15,2) DEFAULT NULL,
   `iof_total_calc` decimal(15,2) DEFAULT NULL,
@@ -136,9 +108,9 @@ $DDL = array (
   `cobrar_iof_cliente` tinyint(1) NOT NULL DEFAULT \'1\',
   `total_lucro_liquido_calc` decimal(15,2) DEFAULT NULL,
   `media_dias_pond_calc` int DEFAULT NULL,
-  `notas` text COLLATE utf8mb4_unicode_ci,
+  `notas` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `valor_total_compensacao` decimal(15,2) DEFAULT \'0.00\',
-  `natureza` enum(\'EMPRESTIMO\',\'DESCONTO\') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT \'DESCONTO\',
+  `natureza` enum(\'EMPRESTIMO\',\'DESCONTO\') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT \'DESCONTO\',
   `valor_principal` decimal(15,2) DEFAULT NULL,
   `valor_total_devido` decimal(15,2) DEFAULT NULL,
   `taxa_juros_mensal` decimal(6,4) DEFAULT NULL,
@@ -147,9 +119,9 @@ $DDL = array (
   `num_parcelas` int DEFAULT NULL,
   `valor_parcela` decimal(15,2) DEFAULT NULL,
   `data_primeiro_vencimento` date DEFAULT NULL,
-  `periodicidade` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT \'mensais\',
+  `periodicidade` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT \'mensais\',
   `taxa_desagio_mensal` decimal(6,4) DEFAULT NULL,
-  `status_contrato` enum(\'pendente\',\'aguardando_assinatura\',\'assinado\') COLLATE utf8mb4_unicode_ci DEFAULT \'pendente\',
+  `status_contrato` enum(\'pendente\',\'aguardando_assinatura\',\'assinado\') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT \'pendente\',
   PRIMARY KEY (`id`),
   KEY `fk_operacao_cedente` (`cedente_id`),
   CONSTRAINT `fk_operacoes_cedente` FOREIGN KEY (`cedente_id`) REFERENCES `clientes` (`id`)
@@ -158,7 +130,7 @@ $DDL = array (
   `id` int NOT NULL AUTO_INCREMENT,
   `operacao_id` int NOT NULL,
   `sacado_id` int DEFAULT NULL,
-  `tipo_recebivel` enum(\'cheque\',\'duplicata\',\'nota_promissoria\',\'boleto\',\'fatura\',\'nota_fiscal\',\'parcela_emprestimo\',\'outros\') COLLATE utf8mb4_unicode_ci DEFAULT \'duplicata\',
+  `tipo_recebivel` enum(\'cheque\',\'duplicata\',\'nota_promissoria\',\'boleto\',\'fatura\',\'nota_fiscal\',\'parcela_emprestimo\',\'outros\') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT \'duplicata\',
   `valor_original` decimal(15,2) NOT NULL,
   `valor_recebido` decimal(15,2) DEFAULT NULL,
   `data_vencimento` date NOT NULL,
@@ -166,15 +138,15 @@ $DDL = array (
   `iof_calc` decimal(15,2) DEFAULT NULL,
   `valor_liquido_calc` decimal(15,2) DEFAULT NULL,
   `dias_prazo_calc` int DEFAULT NULL,
-  `status` enum(\'Em Aberto\',\'Recebido\',\'Problema\',\'Compensado\',\'Parcialmente Compensado\') COLLATE utf8mb4_unicode_ci DEFAULT \'Em Aberto\',
+  `status` enum(\'Em Aberto\',\'Recebido\',\'Problema\',\'Compensado\',\'Parcialmente Compensado\') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT \'Em Aberto\',
   `data_recebimento` datetime DEFAULT NULL,
-  `obs_problema` text COLLATE utf8mb4_unicode_ci,
+  `obs_problema` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`id`),
   KEY `idx_operacao_id` (`operacao_id`),
   KEY `idx_data_vencimento` (`data_vencimento`),
   KEY `idx_status` (`status`),
   KEY `idx_sacado_id` (`sacado_id`),
-  CONSTRAINT `fk_recebiveis_sacado` FOREIGN KEY (`sacado_id`) REFERENCES `sacados` (`id`),
+  CONSTRAINT `fk_recebiveis_sacado` FOREIGN KEY (`sacado_id`) REFERENCES `clientes` (`id`),
   CONSTRAINT `recebiveis_ibfk_1` FOREIGN KEY (`operacao_id`) REFERENCES `operacoes` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
 );
@@ -449,38 +421,9 @@ $DADOS = array (
         'representante_nacionalidade' => 'brasileiro(a)',
         'representante_endereco' => NULL,
       ),
-    ),
-  ),
-  'sacados' => 
-  array (
-    'columns' => 
-    array (
-      0 => 'id',
-      1 => 'nome',
-      2 => 'email',
-      3 => 'telefone',
-      4 => 'tipo_pessoa',
-      5 => 'documento_principal',
-      6 => 'documento_secundario',
-      7 => 'cpf',
-      8 => 'cnpj',
-      9 => 'documento_socio',
-      10 => 'empresa',
-      11 => 'endereco',
-      12 => 'cep',
-      13 => 'logradouro',
-      14 => 'numero',
-      15 => 'complemento',
-      16 => 'bairro',
-      17 => 'cidade',
-      18 => 'estado',
-      19 => 'data_cadastro',
-    ),
-    'rows' => 
-    array (
-      0 => 
+      4 => 
       array (
-        'id' => 1,
+        'id' => 5,
         'nome' => 'MMV EQUIPAMENTOS INDUSTRIAIS LTDA',
         'email' => 'mmvac@mmvequipamentos.com.br',
         'telefone' => '(19) 3413-5340',
@@ -500,10 +443,40 @@ $DADOS = array (
         'cidade' => NULL,
         'estado' => NULL,
         'data_cadastro' => '2025-12-31 21:00:00',
+        'banco' => NULL,
+        'agencia' => NULL,
+        'conta' => NULL,
+        'tipo_conta' => NULL,
+        'chave_pix' => NULL,
+        'casado' => 0,
+        'regime_casamento' => NULL,
+        'conjuge_nome' => NULL,
+        'conjuge_cpf' => NULL,
+        'conjuge_rg' => NULL,
+        'conjuge_nacionalidade' => NULL,
+        'conjuge_profissao' => NULL,
+        'conta_banco' => NULL,
+        'conta_agencia' => NULL,
+        'conta_numero' => NULL,
+        'conta_pix' => NULL,
+        'conta_tipo' => NULL,
+        'conta_titular' => NULL,
+        'conta_documento' => NULL,
+        'whatsapp' => NULL,
+        'anotacoes' => NULL,
+        'conta_pix_tipo' => NULL,
+        'porte' => NULL,
+        'representante_nome' => NULL,
+        'representante_cpf' => NULL,
+        'representante_rg' => NULL,
+        'representante_estado_civil' => NULL,
+        'representante_profissao' => NULL,
+        'representante_nacionalidade' => 'brasileiro(a)',
+        'representante_endereco' => NULL,
       ),
-      1 => 
+      5 => 
       array (
-        'id' => 2,
+        'id' => 6,
         'nome' => 'ALESANDRO DA ROCHA',
         'email' => 'alesandro@gmail.com',
         'telefone' => '(19) 99880-5212',
@@ -523,10 +496,40 @@ $DADOS = array (
         'cidade' => NULL,
         'estado' => NULL,
         'data_cadastro' => '2025-12-31 21:00:00',
+        'banco' => NULL,
+        'agencia' => NULL,
+        'conta' => NULL,
+        'tipo_conta' => NULL,
+        'chave_pix' => NULL,
+        'casado' => 0,
+        'regime_casamento' => NULL,
+        'conjuge_nome' => NULL,
+        'conjuge_cpf' => NULL,
+        'conjuge_rg' => NULL,
+        'conjuge_nacionalidade' => NULL,
+        'conjuge_profissao' => NULL,
+        'conta_banco' => NULL,
+        'conta_agencia' => NULL,
+        'conta_numero' => NULL,
+        'conta_pix' => NULL,
+        'conta_tipo' => NULL,
+        'conta_titular' => NULL,
+        'conta_documento' => NULL,
+        'whatsapp' => NULL,
+        'anotacoes' => NULL,
+        'conta_pix_tipo' => NULL,
+        'porte' => NULL,
+        'representante_nome' => NULL,
+        'representante_cpf' => NULL,
+        'representante_rg' => NULL,
+        'representante_estado_civil' => NULL,
+        'representante_profissao' => NULL,
+        'representante_nacionalidade' => 'brasileiro(a)',
+        'representante_endereco' => NULL,
       ),
-      2 => 
+      6 => 
       array (
-        'id' => 3,
+        'id' => 7,
         'nome' => 'ANA CATARINA SPEGIORIN FORASTIERI',
         'email' => NULL,
         'telefone' => '(19) 99738-7008',
@@ -546,10 +549,40 @@ $DADOS = array (
         'cidade' => NULL,
         'estado' => NULL,
         'data_cadastro' => '2025-12-31 21:00:00',
+        'banco' => NULL,
+        'agencia' => NULL,
+        'conta' => NULL,
+        'tipo_conta' => NULL,
+        'chave_pix' => NULL,
+        'casado' => 0,
+        'regime_casamento' => NULL,
+        'conjuge_nome' => NULL,
+        'conjuge_cpf' => NULL,
+        'conjuge_rg' => NULL,
+        'conjuge_nacionalidade' => NULL,
+        'conjuge_profissao' => NULL,
+        'conta_banco' => NULL,
+        'conta_agencia' => NULL,
+        'conta_numero' => NULL,
+        'conta_pix' => NULL,
+        'conta_tipo' => NULL,
+        'conta_titular' => NULL,
+        'conta_documento' => NULL,
+        'whatsapp' => NULL,
+        'anotacoes' => NULL,
+        'conta_pix_tipo' => NULL,
+        'porte' => NULL,
+        'representante_nome' => NULL,
+        'representante_cpf' => NULL,
+        'representante_rg' => NULL,
+        'representante_estado_civil' => NULL,
+        'representante_profissao' => NULL,
+        'representante_nacionalidade' => 'brasileiro(a)',
+        'representante_endereco' => NULL,
       ),
-      3 => 
+      7 => 
       array (
-        'id' => 4,
+        'id' => 8,
         'nome' => 'ANDERSON LUCIANO CAMPION',
         'email' => 'andersonlucianocampion@hotmail.com',
         'telefone' => '(19) 99984-5342',
@@ -569,10 +602,40 @@ $DADOS = array (
         'cidade' => NULL,
         'estado' => NULL,
         'data_cadastro' => '2026-04-23 00:00:00',
+        'banco' => NULL,
+        'agencia' => NULL,
+        'conta' => NULL,
+        'tipo_conta' => NULL,
+        'chave_pix' => NULL,
+        'casado' => 0,
+        'regime_casamento' => NULL,
+        'conjuge_nome' => NULL,
+        'conjuge_cpf' => NULL,
+        'conjuge_rg' => NULL,
+        'conjuge_nacionalidade' => NULL,
+        'conjuge_profissao' => NULL,
+        'conta_banco' => NULL,
+        'conta_agencia' => NULL,
+        'conta_numero' => NULL,
+        'conta_pix' => NULL,
+        'conta_tipo' => NULL,
+        'conta_titular' => NULL,
+        'conta_documento' => NULL,
+        'whatsapp' => NULL,
+        'anotacoes' => NULL,
+        'conta_pix_tipo' => NULL,
+        'porte' => NULL,
+        'representante_nome' => NULL,
+        'representante_cpf' => NULL,
+        'representante_rg' => NULL,
+        'representante_estado_civil' => NULL,
+        'representante_profissao' => NULL,
+        'representante_nacionalidade' => 'brasileiro(a)',
+        'representante_endereco' => NULL,
       ),
-      4 => 
+      8 => 
       array (
-        'id' => 5,
+        'id' => 9,
         'nome' => 'IUDICE ODONTOLOGIA AVANCADA LTDA',
         'email' => NULL,
         'telefone' => '(15) 90127-9119',
@@ -592,10 +655,40 @@ $DADOS = array (
         'cidade' => NULL,
         'estado' => NULL,
         'data_cadastro' => '2026-04-14 00:00:00',
+        'banco' => NULL,
+        'agencia' => NULL,
+        'conta' => NULL,
+        'tipo_conta' => NULL,
+        'chave_pix' => NULL,
+        'casado' => 0,
+        'regime_casamento' => NULL,
+        'conjuge_nome' => NULL,
+        'conjuge_cpf' => NULL,
+        'conjuge_rg' => NULL,
+        'conjuge_nacionalidade' => NULL,
+        'conjuge_profissao' => NULL,
+        'conta_banco' => NULL,
+        'conta_agencia' => NULL,
+        'conta_numero' => NULL,
+        'conta_pix' => NULL,
+        'conta_tipo' => NULL,
+        'conta_titular' => NULL,
+        'conta_documento' => NULL,
+        'whatsapp' => NULL,
+        'anotacoes' => NULL,
+        'conta_pix_tipo' => NULL,
+        'porte' => NULL,
+        'representante_nome' => NULL,
+        'representante_cpf' => NULL,
+        'representante_rg' => NULL,
+        'representante_estado_civil' => NULL,
+        'representante_profissao' => NULL,
+        'representante_nacionalidade' => 'brasileiro(a)',
+        'representante_endereco' => NULL,
       ),
-      5 => 
+      9 => 
       array (
-        'id' => 6,
+        'id' => 10,
         'nome' => 'R&G COMÉRCIO DE ARTIGOS INFANTIS LTDA',
         'email' => NULL,
         'telefone' => '(19) 96160-5564',
@@ -615,10 +708,40 @@ $DADOS = array (
         'cidade' => NULL,
         'estado' => NULL,
         'data_cadastro' => '2026-04-28 00:00:00',
+        'banco' => NULL,
+        'agencia' => NULL,
+        'conta' => NULL,
+        'tipo_conta' => NULL,
+        'chave_pix' => NULL,
+        'casado' => 0,
+        'regime_casamento' => NULL,
+        'conjuge_nome' => NULL,
+        'conjuge_cpf' => NULL,
+        'conjuge_rg' => NULL,
+        'conjuge_nacionalidade' => NULL,
+        'conjuge_profissao' => NULL,
+        'conta_banco' => NULL,
+        'conta_agencia' => NULL,
+        'conta_numero' => NULL,
+        'conta_pix' => NULL,
+        'conta_tipo' => NULL,
+        'conta_titular' => NULL,
+        'conta_documento' => NULL,
+        'whatsapp' => NULL,
+        'anotacoes' => NULL,
+        'conta_pix_tipo' => NULL,
+        'porte' => NULL,
+        'representante_nome' => NULL,
+        'representante_cpf' => NULL,
+        'representante_rg' => NULL,
+        'representante_estado_civil' => NULL,
+        'representante_profissao' => NULL,
+        'representante_nacionalidade' => 'brasileiro(a)',
+        'representante_endereco' => NULL,
       ),
-      6 => 
+      10 => 
       array (
-        'id' => 7,
+        'id' => 11,
         'nome' => 'Cristian Weiser',
         'email' => 'cris@cris.com',
         'telefone' => '(19) 99898-9999',
@@ -638,10 +761,40 @@ $DADOS = array (
         'cidade' => NULL,
         'estado' => NULL,
         'data_cadastro' => '2026-01-01 00:00:00',
+        'banco' => NULL,
+        'agencia' => NULL,
+        'conta' => NULL,
+        'tipo_conta' => NULL,
+        'chave_pix' => NULL,
+        'casado' => 0,
+        'regime_casamento' => NULL,
+        'conjuge_nome' => NULL,
+        'conjuge_cpf' => NULL,
+        'conjuge_rg' => NULL,
+        'conjuge_nacionalidade' => NULL,
+        'conjuge_profissao' => NULL,
+        'conta_banco' => NULL,
+        'conta_agencia' => NULL,
+        'conta_numero' => NULL,
+        'conta_pix' => NULL,
+        'conta_tipo' => NULL,
+        'conta_titular' => NULL,
+        'conta_documento' => NULL,
+        'whatsapp' => NULL,
+        'anotacoes' => NULL,
+        'conta_pix_tipo' => NULL,
+        'porte' => NULL,
+        'representante_nome' => NULL,
+        'representante_cpf' => NULL,
+        'representante_rg' => NULL,
+        'representante_estado_civil' => NULL,
+        'representante_profissao' => NULL,
+        'representante_nacionalidade' => 'brasileiro(a)',
+        'representante_endereco' => NULL,
       ),
-      7 => 
+      11 => 
       array (
-        'id' => 8,
+        'id' => 12,
         'nome' => 'LA SOARES DE CAMPO',
         'email' => NULL,
         'telefone' => NULL,
@@ -661,6 +814,36 @@ $DADOS = array (
         'cidade' => NULL,
         'estado' => NULL,
         'data_cadastro' => '2026-07-08 10:32:13',
+        'banco' => NULL,
+        'agencia' => NULL,
+        'conta' => NULL,
+        'tipo_conta' => NULL,
+        'chave_pix' => NULL,
+        'casado' => 0,
+        'regime_casamento' => NULL,
+        'conjuge_nome' => NULL,
+        'conjuge_cpf' => NULL,
+        'conjuge_rg' => NULL,
+        'conjuge_nacionalidade' => NULL,
+        'conjuge_profissao' => NULL,
+        'conta_banco' => NULL,
+        'conta_agencia' => NULL,
+        'conta_numero' => NULL,
+        'conta_pix' => NULL,
+        'conta_tipo' => NULL,
+        'conta_titular' => NULL,
+        'conta_documento' => NULL,
+        'whatsapp' => NULL,
+        'anotacoes' => NULL,
+        'conta_pix_tipo' => NULL,
+        'porte' => NULL,
+        'representante_nome' => NULL,
+        'representante_cpf' => NULL,
+        'representante_rg' => NULL,
+        'representante_estado_civil' => NULL,
+        'representante_profissao' => NULL,
+        'representante_nacionalidade' => 'brasileiro(a)',
+        'representante_endereco' => NULL,
       ),
     ),
   ),
@@ -1069,7 +1252,7 @@ $DADOS = array (
       array (
         'id' => 1,
         'operacao_id' => 1,
-        'sacado_id' => 1,
+        'sacado_id' => 5,
         'tipo_recebivel' => 'duplicata',
         'valor_original' => '23924.32',
         'valor_recebido' => NULL,
@@ -1086,7 +1269,7 @@ $DADOS = array (
       array (
         'id' => 4,
         'operacao_id' => 3,
-        'sacado_id' => 1,
+        'sacado_id' => 5,
         'tipo_recebivel' => 'duplicata',
         'valor_original' => '35000.00',
         'valor_recebido' => NULL,
@@ -1103,7 +1286,7 @@ $DADOS = array (
       array (
         'id' => 7,
         'operacao_id' => 4,
-        'sacado_id' => 1,
+        'sacado_id' => 5,
         'tipo_recebivel' => 'duplicata',
         'valor_original' => '2700.00',
         'valor_recebido' => NULL,
@@ -1120,7 +1303,7 @@ $DADOS = array (
       array (
         'id' => 8,
         'operacao_id' => 4,
-        'sacado_id' => 1,
+        'sacado_id' => 5,
         'tipo_recebivel' => 'duplicata',
         'valor_original' => '3520.00',
         'valor_recebido' => NULL,
@@ -1137,7 +1320,7 @@ $DADOS = array (
       array (
         'id' => 24,
         'operacao_id' => 8,
-        'sacado_id' => 2,
+        'sacado_id' => 6,
         'tipo_recebivel' => 'fatura',
         'valor_original' => '1020.01',
         'valor_recebido' => NULL,
@@ -1154,7 +1337,7 @@ $DADOS = array (
       array (
         'id' => 25,
         'operacao_id' => 8,
-        'sacado_id' => 2,
+        'sacado_id' => 6,
         'tipo_recebivel' => 'fatura',
         'valor_original' => '1020.01',
         'valor_recebido' => NULL,
@@ -1171,7 +1354,7 @@ $DADOS = array (
       array (
         'id' => 26,
         'operacao_id' => 8,
-        'sacado_id' => 2,
+        'sacado_id' => 6,
         'tipo_recebivel' => 'fatura',
         'valor_original' => '1020.01',
         'valor_recebido' => NULL,
@@ -1188,7 +1371,7 @@ $DADOS = array (
       array (
         'id' => 34,
         'operacao_id' => 9,
-        'sacado_id' => 2,
+        'sacado_id' => 6,
         'tipo_recebivel' => 'fatura',
         'valor_original' => '1500.00',
         'valor_recebido' => NULL,
@@ -1205,7 +1388,7 @@ $DADOS = array (
       array (
         'id' => 35,
         'operacao_id' => 9,
-        'sacado_id' => 2,
+        'sacado_id' => 6,
         'tipo_recebivel' => 'fatura',
         'valor_original' => '1500.00',
         'valor_recebido' => NULL,
@@ -1222,7 +1405,7 @@ $DADOS = array (
       array (
         'id' => 44,
         'operacao_id' => 10,
-        'sacado_id' => 3,
+        'sacado_id' => 7,
         'tipo_recebivel' => 'fatura',
         'valor_original' => '1500.00',
         'valor_recebido' => NULL,
@@ -1239,7 +1422,7 @@ $DADOS = array (
       array (
         'id' => 66,
         'operacao_id' => 13,
-        'sacado_id' => 6,
+        'sacado_id' => 10,
         'tipo_recebivel' => 'fatura',
         'valor_original' => '7998.00',
         'valor_recebido' => NULL,
@@ -1256,7 +1439,7 @@ $DADOS = array (
       array (
         'id' => 67,
         'operacao_id' => 14,
-        'sacado_id' => 8,
+        'sacado_id' => 12,
         'tipo_recebivel' => 'fatura',
         'valor_original' => '11650.00',
         'valor_recebido' => NULL,
@@ -1273,7 +1456,7 @@ $DADOS = array (
       array (
         'id' => 68,
         'operacao_id' => 14,
-        'sacado_id' => 8,
+        'sacado_id' => 12,
         'tipo_recebivel' => 'fatura',
         'valor_original' => '11650.00',
         'valor_recebido' => NULL,
@@ -1290,7 +1473,7 @@ $DADOS = array (
       array (
         'id' => 69,
         'operacao_id' => 14,
-        'sacado_id' => 8,
+        'sacado_id' => 12,
         'tipo_recebivel' => 'fatura',
         'valor_original' => '11650.00',
         'valor_recebido' => NULL,
@@ -1307,7 +1490,7 @@ $DADOS = array (
       array (
         'id' => 70,
         'operacao_id' => 14,
-        'sacado_id' => 8,
+        'sacado_id' => 12,
         'tipo_recebivel' => 'fatura',
         'valor_original' => '11650.00',
         'valor_recebido' => NULL,
@@ -1324,7 +1507,7 @@ $DADOS = array (
       array (
         'id' => 71,
         'operacao_id' => 14,
-        'sacado_id' => 8,
+        'sacado_id' => 12,
         'tipo_recebivel' => 'fatura',
         'valor_original' => '11650.00',
         'valor_recebido' => NULL,
@@ -1361,8 +1544,7 @@ function inserirLinha(PDO $pdo, string $tabela, array $row): string {
     $lista = '`' . implode('`, `', $cols) . '`';
     $ph    = implode(', ', array_fill(0, count($cols), '?'));
     $stmt  = $pdo->prepare("INSERT INTO `$tabela` ($lista) VALUES ($ph)");
-    $vals  = array_map(fn($c) => $row[$c] ?? null, $cols);
-    $stmt->execute($vals);
+    $stmt->execute(array_map(fn($c) => $row[$c] ?? null, $cols));
     return $pdo->lastInsertId();
 }
 
@@ -1387,7 +1569,7 @@ try {
     $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
 
     // --- 1) Criar tabelas que faltam (DDL causa commit implicito -> fora da transacao)
-    foreach (['clientes', 'sacados', 'operacoes', 'recebiveis'] as $t) {
+    foreach (['clientes', 'operacoes', 'recebiveis'] as $t) {
         $existe = $pdo->query("SHOW TABLES LIKE " . $pdo->quote($t))->fetchColumn();
         if ($existe) {
             $rel[] = sprintf('tabela %-11s ja existe', $t);
@@ -1397,14 +1579,12 @@ try {
         }
     }
 
-    // --- 2) Inserir dados dentro de uma transacao
     $pdo->beginTransaction();
 
-    $mapCliente = [];  // id_local => id_online
-    $mapSacado  = [];
-    $mapOperacao = []; // id_local => ['id'=>id_online, 'novo'=>bool]
+    $mapCliente  = []; // id_local => id_online
+    $mapOperacao = [];
 
-    // Clientes (cedentes)
+    // Clientes (cedentes e sacados no mesmo cadastro)
     $ci = 0; $cm = 0;
     foreach ($DADOS['clientes']['rows'] as $row) {
         $achado = acharExistente($pdo, 'clientes', $row, ['cnpj', 'cpf', 'documento_principal', 'nome']);
@@ -1412,15 +1592,6 @@ try {
         else { $mapCliente[$row['id']] = inserirLinha($pdo, 'clientes', $row); $ci++; }
     }
     $rel[] = sprintf('clientes    -> %d inseridos, %d ja existiam', $ci, $cm);
-
-    // Sacados
-    $si = 0; $sm = 0;
-    foreach ($DADOS['sacados']['rows'] as $row) {
-        $achado = acharExistente($pdo, 'sacados', $row, ['cnpj', 'cpf', 'documento_principal', 'nome']);
-        if ($achado !== null) { $mapSacado[$row['id']] = $achado; $sm++; }
-        else { $mapSacado[$row['id']] = inserirLinha($pdo, 'sacados', $row); $si++; }
-    }
-    $rel[] = sprintf('sacados     -> %d inseridos, %d ja existiam', $si, $sm);
 
     // Operacoes (dedup por data + totais)
     $destOp = colunasDestino($pdo, 'operacoes');
@@ -1430,11 +1601,9 @@ try {
     ));
     $oi = 0; $od = 0;
     foreach ($DADOS['operacoes']['rows'] as $row) {
-        // remapeia cedente
         if (isset($row['cedente_id']) && $row['cedente_id'] !== null && isset($mapCliente[$row['cedente_id']])) {
             $row['cedente_id'] = $mapCliente[$row['cedente_id']];
         }
-        // dedup
         $existente = null;
         if ($sigCols) {
             $where = implode(' AND ', array_map(fn($c) => "`$c` <=> ?", $sigCols));
@@ -1447,21 +1616,20 @@ try {
             $mapOperacao[$row['id']] = ['id' => $existente, 'novo' => false];
             $od++;
         } else {
-            $novoId = inserirLinha($pdo, 'operacoes', $row);
-            $mapOperacao[$row['id']] = ['id' => $novoId, 'novo' => true];
+            $mapOperacao[$row['id']] = ['id' => inserirLinha($pdo, 'operacoes', $row), 'novo' => true];
             $oi++;
         }
     }
     $rel[] = sprintf('operacoes   -> %d inseridas, %d ja existiam (puladas)', $oi, $od);
 
-    // Recebiveis (apenas das operacoes recem-inseridas)
+    // Recebiveis (sacado_id tambem remapeia via clientes)
     $ri = 0; $rp = 0;
     foreach ($DADOS['recebiveis']['rows'] as $row) {
         $op = $mapOperacao[$row['operacao_id']] ?? null;
         if ($op === null || !$op['novo']) { $rp++; continue; }
         $row['operacao_id'] = $op['id'];
-        if (isset($row['sacado_id']) && $row['sacado_id'] !== null && isset($mapSacado[$row['sacado_id']])) {
-            $row['sacado_id'] = $mapSacado[$row['sacado_id']];
+        if (isset($row['sacado_id']) && $row['sacado_id'] !== null && isset($mapCliente[$row['sacado_id']])) {
+            $row['sacado_id'] = $mapCliente[$row['sacado_id']];
         }
         inserirLinha($pdo, 'recebiveis', $row);
         $ri++;
