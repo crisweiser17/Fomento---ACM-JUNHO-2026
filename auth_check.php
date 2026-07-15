@@ -35,7 +35,9 @@ if (php_sapi_name() === 'cli') {
     $skip_auth = true;
     $current_uri = ''; // Inicializa como string vazia para CLI
 } else {
-    $current_uri = $_SERVER['REQUEST_URI'];
+    // Apenas o caminho: a query string não pode influenciar a liberação de
+    // recursos estáticos (senão "pagina.php?x=.js" burlaria a autenticação).
+    $current_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '';
 }
 
 // Lista de padrões de URL que não precisam de autenticação
@@ -67,11 +69,9 @@ foreach ($patterns_to_skip as $pattern) {
 if (!$skip_auth && (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true)) {
     // Se não estiver logado e não for CLI, redireciona para a página de login
     if (php_sapi_name() !== 'cli') {
-        $_SESSION['loggedin'] = true; // Bypass login for local testing
-        $_SESSION['user_id'] = 1;
-        // $redirect_url = urlencode($_SERVER['REQUEST_URI']);
-        // header("Location: login.php?redirect=" . $redirect_url);
-        // exit;
+        $redirect_url = urlencode($_SERVER['REQUEST_URI']);
+        header("Location: login.php?redirect=" . $redirect_url);
+        exit;
     }
 }
 
