@@ -247,12 +247,17 @@ try {
     // Processamento de nulos para campos ENUM e opcionais
     $porte_val = !empty($porte) ? $porte : null;
 
+    // Documento branco/zerado vai como NULL: a coluna documento_principal tem
+    // índice UNIQUE, e gravar "00000000000000" literal impediria cadastrar um
+    // segundo cliente sem documento (Duplicate entry). UNIQUE ignora NULLs.
+    $documentoPrincipalValor = documentoVazioOuZerado($documentoPrincipal) ? null : $documentoPrincipal;
+
     $stmt->bindParam(':empresa', $empresa);
     $stmt->bindParam(':email', $email);
     $stmt->bindParam(':telefone', $telefone);
     $stmt->bindParam(':whatsapp', $whatsapp);
     $stmt->bindParam(':tipo_pessoa', $tipoPessoa);
-    $stmt->bindParam(':documento_principal', $documentoPrincipal);
+    $stmt->bindParam(':documento_principal', $documentoPrincipalValor);
     $stmt->bindParam(':endereco', $endereco);
     $stmt->bindParam(':cep', $cep);
     $stmt->bindParam(':logradouro', $logradouro);
