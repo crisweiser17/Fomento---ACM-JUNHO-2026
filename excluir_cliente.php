@@ -9,24 +9,34 @@ if (isset($_GET['id']) && filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT)) {
 
     try {
         // ---------------------------------------------------------
-        // 2. VERIFICAÇÃO: Checar se existem operações associadas
+        // 2. VERIFICAÇÃO: vínculos que impedem a exclusão
         // ---------------------------------------------------------
-        $sqlCheck = "SELECT 1 -- Seleciona apenas 1 para indicar existência
-                     FROM operacoes o
-                     WHERE o.cedente_id = :cliente_id
-                     LIMIT 1"; // Para assim que encontrar o primeiro
+        // Cadastro unificado: o mesmo cliente pode ser cedente (operacoes) e/ou
+        // sacado (recebiveis). Checar só operacoes deixava o DELETE estourar na
+        // foreign key fk_recebiveis_sacado com "erro no banco de dados".
+        $vinculos = [
+            'operações como cedente' => "SELECT COUNT(*) FROM operacoes WHERE cedente_id = :id",
+            'títulos como sacado'    => "SELECT COUNT(*) FROM recebiveis WHERE sacado_id = :id",
+            'contratos de cessão'    => "SELECT COUNT(*) FROM master_cession_contracts WHERE cedente_id = :id",
+        ];
 
-        $stmtCheck = $pdo->prepare($sqlCheck);
-        $stmtCheck->bindParam(':cliente_id', $clienteIdParaExcluir, PDO::PARAM_INT);
-        $stmtCheck->execute();
+        $bloqueios = [];
+        foreach ($vinculos as $rotulo => $sqlVinculo) {
+            $stmtVinculo = $pdo->prepare($sqlVinculo);
+            $stmtVinculo->execute([':id' => $clienteIdParaExcluir]);
+            $qtd = (int) $stmtVinculo->fetchColumn();
+            if ($qtd > 0) {
+                $bloqueios[] = "$qtd $rotulo";
+            }
+        }
 
         // ---------------------------------------------------------
         // 3. DECISÃO: Excluir ou bloquear?
         // ---------------------------------------------------------
-        if ($stmtCheck->fetchColumn()) {
-            // Se fetchColumn() retornar 1 (ou qualquer valor true), significa que encontrou operação(ões).
-            // Bloqueia a exclusão e redireciona com erro.
-            header("Location: listar_clientes.php?status=error&msg=" . urlencode("Cliente ID " . $clienteIdParaExcluir . " não pode ser excluído pois possui operações associadas."));
+        if (!empty($bloqueios)) {
+            $motivo = "Cliente não pode ser excluído: possui " . implode(' e ', $bloqueios)
+                    . ". Exclua ou transfira esses registros antes.";
+            header("Location: listar_clientes.php?status=error&msg=" . urlencode($motivo));
             exit;
         } else {
             // Nenhuma operação encontrada, pode prosseguir com a exclusão.
@@ -36,11 +46,12 @@ if (isset($_GET['id']) && filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT)) {
             // ---------------------------------------------------------
             $pdo->beginTransaction(); // Opcional, mas bom para DELETE
 
-            // Primeiro excluir sócios associados
-            $sqlDeleteSocios = "DELETE FROM clientes_socios WHERE cliente_id = :id";
-            $stmtDeleteSocios = $pdo->prepare($sqlDeleteSocios);
-            $stmtDeleteSocios->bindParam(':id', $clienteIdParaExcluir, PDO::PARAM_INT);
-            $stmtDeleteSocios->execute();
+            // Primeiro excluir os dados filhos (sócios), que também têm FK para clientes
+            foreach (['clientes_socios' => 'cliente_id', 'cedentes_socios' => 'cedente_id'] as $tabelaFilha => $coluna) {
+                $stmtDeleteSocios = $pdo->prepare("DELETE FROM `$tabelaFilha` WHERE `$coluna` = :id");
+                $stmtDeleteSocios->bindParam(':id', $clienteIdParaExcluir, PDO::PARAM_INT);
+                $stmtDeleteSocios->execute();
+            }
 
             // Depois excluir o cliente
             $sqlDelete = "DELETE FROM clientes WHERE id = :id";
