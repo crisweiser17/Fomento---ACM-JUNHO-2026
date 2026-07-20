@@ -7,7 +7,10 @@ $results_per_page = 15;
 $page   = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 // Sem parâmetros na URL, abre pelos clientes cadastrados mais recentemente.
-$sort   = isset($_GET['sort']) ? $_GET['sort'] : 'data_cadastro';
+// Ordena por id, não por data_cadastro: clientes migrados de `sacados` mantiveram
+// a data original e receberam ids novos, então data_cadastro não reflete a ordem
+// real de cadastro. O id auto_increment reflete.
+$sort   = isset($_GET['sort']) ? $_GET['sort'] : 'id';
 $dir    = isset($_GET['dir']) && in_array(strtolower($_GET['dir']), ['asc', 'desc'], true)
     ? strtolower($_GET['dir'])
     : (isset($_GET['sort']) ? 'asc' : 'desc');
@@ -25,7 +28,7 @@ $allowed_sort_columns = [
     'ultima_op' => 'ultima_op',
     'total_ops' => 'total_ops'
 ];
-if (!array_key_exists($sort, $allowed_sort_columns)) $sort = 'data_cadastro';
+if (!array_key_exists($sort, $allowed_sort_columns)) $sort = 'id';
 $sort_column_sql = $allowed_sort_columns[$sort];
 
 $offset = max(0, ($page - 1) * $results_per_page);

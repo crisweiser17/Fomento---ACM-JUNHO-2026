@@ -15,14 +15,27 @@ if (isset($_GET['id']) && filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT)) {
         // sacado (recebiveis). Checar só operacoes deixava o DELETE estourar na
         // foreign key fk_recebiveis_sacado com "erro no banco de dados".
         $vinculos = [
-            'operações como cedente' => "SELECT COUNT(*) FROM operacoes WHERE cedente_id = :id",
-            'títulos como sacado'    => "SELECT COUNT(*) FROM recebiveis WHERE sacado_id = :id",
-            'contratos de cessão'    => "SELECT COUNT(*) FROM master_cession_contracts WHERE cedente_id = :id",
+            'operações como cedente' => ['tabela' => 'operacoes', 'sql' => "SELECT COUNT(*) FROM operacoes WHERE cedente_id = :id"],
+            'títulos como sacado'    => ['tabela' => 'recebiveis', 'sql' => "SELECT COUNT(*) FROM recebiveis WHERE sacado_id = :id"],
+            'contratos de cessão'    => ['tabela' => 'master_cession_contracts', 'sql' => "SELECT COUNT(*) FROM master_cession_contracts WHERE cedente_id = :id"],
         ];
 
+        // A tabela pode não existir em ambientes com schema mais antigo.
+        $tabelaExiste = function (string $tabela) use ($pdo): bool {
+            $stmt = $pdo->prepare(
+                "SELECT COUNT(*) FROM information_schema.TABLES
+                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?"
+            );
+            $stmt->execute([$tabela]);
+            return (int) $stmt->fetchColumn() > 0;
+        };
+
         $bloqueios = [];
-        foreach ($vinculos as $rotulo => $sqlVinculo) {
-            $stmtVinculo = $pdo->prepare($sqlVinculo);
+        foreach ($vinculos as $rotulo => $vinculo) {
+            if (!$tabelaExiste($vinculo['tabela'])) {
+                continue;
+            }
+            $stmtVinculo = $pdo->prepare($vinculo['sql']);
             $stmtVinculo->execute([':id' => $clienteIdParaExcluir]);
             $qtd = (int) $stmtVinculo->fetchColumn();
             if ($qtd > 0) {
@@ -46,8 +59,12 @@ if (isset($_GET['id']) && filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT)) {
             // ---------------------------------------------------------
             $pdo->beginTransaction(); // Opcional, mas bom para DELETE
 
-            // Primeiro excluir os dados filhos (sócios), que também têm FK para clientes
+            // Primeiro excluir os dados filhos (sócios), que também têm FK para clientes.
+            // Pula tabelas ausentes: nem todo ambiente tem o mesmo schema.
             foreach (['clientes_socios' => 'cliente_id', 'cedentes_socios' => 'cedente_id'] as $tabelaFilha => $coluna) {
+                if (!$tabelaExiste($tabelaFilha)) {
+                    continue;
+                }
                 $stmtDeleteSocios = $pdo->prepare("DELETE FROM `$tabelaFilha` WHERE `$coluna` = :id");
                 $stmtDeleteSocios->bindParam(':id', $clienteIdParaExcluir, PDO::PARAM_INT);
                 $stmtDeleteSocios->execute();
