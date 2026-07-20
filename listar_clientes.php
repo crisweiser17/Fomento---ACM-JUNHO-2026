@@ -6,8 +6,11 @@ require_once 'ui_helpers.php';
 $results_per_page = 15;
 $page   = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$sort   = isset($_GET['sort']) ? $_GET['sort'] : 'nome';
-$dir    = isset($_GET['dir']) && in_array(strtolower($_GET['dir']), ['asc', 'desc']) ? strtolower($_GET['dir']) : 'asc';
+// Sem parâmetros na URL, abre pelos clientes cadastrados mais recentemente.
+$sort   = isset($_GET['sort']) ? $_GET['sort'] : 'data_cadastro';
+$dir    = isset($_GET['dir']) && in_array(strtolower($_GET['dir']), ['asc', 'desc'], true)
+    ? strtolower($_GET['dir'])
+    : (isset($_GET['sort']) ? 'asc' : 'desc');
 $quick  = isset($_GET['quick']) ? $_GET['quick'] : 'todos'; // todos | ativos | inativos | novos
 
 $allowed_sort_columns = [
@@ -17,11 +20,12 @@ $allowed_sort_columns = [
     'email' => 'c.email',
     'telefone' => 'c.telefone',
     'documento_principal' => 'c.documento_principal',
+    'data_cadastro' => 'c.data_cadastro',
     'volume_12m' => 'volume_12m',
     'ultima_op' => 'ultima_op',
     'total_ops' => 'total_ops'
 ];
-if (!array_key_exists($sort, $allowed_sort_columns)) $sort = 'nome';
+if (!array_key_exists($sort, $allowed_sort_columns)) $sort = 'data_cadastro';
 $sort_column_sql = $allowed_sort_columns[$sort];
 
 $offset = max(0, ($page - 1) * $results_per_page);
@@ -126,7 +130,7 @@ try {
         FROM clientes c
         $whereSql
         $havingSql
-        ORDER BY $sort_column_sql $dir
+        ORDER BY $sort_column_sql $dir, c.id $dir
         LIMIT :limit OFFSET :offset
     ";
     $stmt = $pdo->prepare($sql);
@@ -368,6 +372,7 @@ require_once 'head.php';
                                 <th class="text-center"><?php echo getSortLink('total_ops', 'Operações', $sort, $dir, $baseParams); ?></th>
                                 <th class="text-end"><?php echo getSortLink('volume_12m', 'Volume 12m', $sort, $dir, $baseParams); ?></th>
                                 <th class="text-center"><?php echo getSortLink('ultima_op', 'Última op.', $sort, $dir, $baseParams); ?></th>
+                                <th class="text-center"><?php echo getSortLink('data_cadastro', 'Cadastro', $sort, $dir, $baseParams); ?></th>
                                 <th class="text-center" style="width:130px;">Ações</th>
                             </tr>
                         </thead>
@@ -428,6 +433,11 @@ require_once 'head.php';
                                     </td>
                                     <td class="text-center text-muted small nowrap">
                                         <?php echo ultimaOpLabel($cliente['ultima_op']); ?>
+                                    </td>
+                                    <td class="text-center text-muted small nowrap">
+                                        <?php echo !empty($cliente['data_cadastro'])
+                                            ? htmlspecialchars(date('d/m/Y', strtotime($cliente['data_cadastro'])))
+                                            : '<span class="text-muted">—</span>'; ?>
                                     </td>
                                     <td class="text-center">
                                         <div class="row-actions">
